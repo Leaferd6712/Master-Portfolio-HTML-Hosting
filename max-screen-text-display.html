@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Big Text — Fit to Screen</title>
+  <style>
+    :root{--bg:#0b0b0b;--ui:#111827;--text:#ffffff;--accent:#00a8e8}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    .toolbar{position:fixed;left:0;right:0;top:0;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);backdrop-filter:blur(4px);padding:12px 14px;display:flex;gap:8px;align-items:center;z-index:40}
+    .toolbar .controls{display:flex;gap:8px;flex:1}
+    input[type=text], textarea{background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:8px;border-radius:6px;min-width:180px}
+    textarea{min-height:48px;resize:vertical}
+    button{background:var(--accent);border:none;color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+    .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
+    .fit-text{width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1;word-break:break-word;white-space:pre-wrap;overflow:hidden}
+    .hidden{display:none}
+    .note{color:rgba(255,255,255,0.55);font-size:13px}
+    .small{font-size:13px}
+    .toolbar .right{display:flex;gap:8px;align-items:center}
+    .example{color:rgba(255,255,255,0.6);font-size:13px;margin-left:6px}
+    @media (max-width:600px){.toolbar{flex-direction:column;align-items:stretch;padding:10px}.toolbar .controls{flex-direction:column}.example{margin-left:0}}
+  </style>
+</head>
+<body>
+  <div class="toolbar" id="toolbar">
+    <div class="controls">
+      <textarea id="inputText" placeholder="Type your text here — press Display or Enter (Ctrl+Enter for newline)" aria-label="Text to display"></textarea>
+      <div style="display:flex;flex-direction:column;gap:8px;justify-content:center">
+        <button id="displayBtn">Display</button>
+        <button id="clearBtn" class="ghost">Clear</button>
+      </div>
+    </div>
+    <div class="right">
+      <div class="example small"></div>
+      <button id="fsBtn">Fullscreen</button>
+    </div>
+  </div>
+
+  <main class="stage" id="stage">
+    <div id="textContainer" class="fit-text" role="region" aria-live="polite"></div>
+  </main>
+
+  <script>
+    // Elements
+    const input = document.getElementById('inputText');
+    const displayBtn = document.getElementById('displayBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const fsBtn = document.getElementById('fsBtn');
+    const toolbar = document.getElementById('toolbar');
+    const stage = document.getElementById('stage');
+    const textContainer = document.getElementById('textContainer');
+
+    // State
+    let showing = false;
+
+    // Display the text and fit it
+    function showText() {
+      const txt = input.value.trim() || '';
+      textContainer.textContent = txt || '\u00A0'; // keep element present even if empty
+      fitTextToContainer(textContainer, stage);
+      hideToolbar();
+      showing = true;
+    }
+
+    // Hide text and show toolbar
+    function hideText() {
+      showing = false;
+      showToolbar();
+    }
+
+    function hideToolbar(){
+      toolbar.classList.add('hidden');
+    }
+    function showToolbar(){
+      toolbar.classList.remove('hidden');
+      // refit after a tick so measurements are accurate
+      requestAnimationFrame(()=>fitTextToContainer(textContainer, stage));
+    }
+
+    // Fit text to container using binary search on font-size (px)
+    function fitTextToContainer(el, container) {
+      if (!el) return;
+      // ensure the element fills container for measurement
+      el.style.fontSize = '10px';
+      el.style.padding = '0';
+      // compute available space
+      const pad = 48; // a small safety padding
+      const maxW = container.clientWidth - pad;
+      const maxH = container.clientHeight - pad;
+
+      // binary search
+      let low = 2; let high = 4000; let best = low;
+      for (let i=0;i<24;i++){
+        const mid = Math.floor((low+high)/2);
+        el.style.fontSize = mid + 'px';
+        // force reflow
+        const overW = el.scrollWidth > maxW + 0.5;
+        const overH = el.scrollHeight > maxH + 0.5;
+        if (overW || overH) {
+          high = mid - 1;
+        } else {
+          best = mid;
+          low = mid + 1;
+        }
+      }
+      el.style.fontSize = Math.max(2, best) + 'px';
+
+      // vertically center multiline content precisely
+      // If text is single line center horizontally is enough; for multi-line we keep center with flexbox.
+      // Small tweak: if the text contains newlines, reduce font slightly to ensure no unexpected overflow.
+      if (el.textContent.includes('\n')){
+        // ensure still fits
+        while ((el.scrollHeight > maxH || el.scrollWidth > maxW) && parseInt(el.style.fontSize) > 2){
+          el.style.fontSize = (parseInt(el.style.fontSize) - 1) + 'px';
+        }
+      }
+    }
+
+    // Fullscreen helpers
+    async function enterFullscreen(){
+      try{
+        await stage.requestFullscreen();
+      }catch(e){
+        console.warn('Fullscreen request failed', e);
+      }
+    }
+    async function exitFullscreen(){
+      if (document.fullscreenElement) await document.exitFullscreen();
+    }
+
+    // Event listeners
+    displayBtn.addEventListener('click', ()=>{
+      showText();
+    });
+    clearBtn.addEventListener('click', ()=>{ input.value = ''; input.focus(); });
+    fsBtn.addEventListener('click', async ()=>{
+      if (document.fullscreenElement) {
+        await exitFullscreen();
+      } else {
+        // if we're not already showing the text, show first
+        if (!showing) showText();
+        await enterFullscreen();
+      }
+    });
+
+    // Fit on resize or fullscreen changes
+    window.addEventListener('resize', ()=>{
+      if (showing) fitTextToContainer(textContainer, stage);
+    });
+    document.addEventListener('fullscreenchange', ()=>{
+      // refit text when entering/exiting fullscreen
+      fitTextToContainer(textContainer, stage);
+    });
+
+    // Keyboard behavior
+    document.addEventListener('keydown', async (e)=>{
+      // Ctrl+Enter inserts newline in textarea (default), Enter alone triggers display when textarea focused
+      if (e.key === 'Enter' && document.activeElement === input && !e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        showText();
+      }
+
+      // ESC: if fullscreen -> exit fullscreen; else if showing -> return to editor
+      if (e.key === 'Escape'){
+        if (document.fullscreenElement) {
+          await exitFullscreen();
+        } else if (showing) {
+          hideText();
+        }
+      }
+
+      // Spacebar when not focused on input: toggle display
+      if (e.code === 'Space' && document.activeElement !== input) {
+        e.preventDefault();
+        if (showing) hideText(); else showText();
+      }
+    });
+
+    // Click on stage (outside toolbar) toggles the editor when showing
+    stage.addEventListener('click', (e)=>{
+      // ignore clicks on toolbar when visible
+      if (!toolbar.classList.contains('hidden')) return;
+      // toggle back to editor on click
+      hideText();
+    });
+
+    // Initial fit when page loads
+    window.addEventListener('load', ()=>{
+      fitTextToContainer(textContainer, stage);
+    });
+  </script>
+</body>
+</html>
