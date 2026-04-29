@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>WordCounter</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0f1117;
+  --surface:#181c27;
+  --surface2:#1e2333;
+  --border:#2a2f42;
+  --accent:#e8a94d;
+  --accent2:#5b8dee;
+  --danger:#e05c5c;
+  --text:#e8e6e0;
+  --muted:#7a7f94;
+  --mono:'IBM Plex Mono',monospace;
+  --serif:'Lora',Georgia,serif;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text)}
+body{
+  font-family:var(--serif);
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:1fr 300px;
+  grid-template-rows:auto 1fr auto;
+  grid-template-areas:"header header""editor sidebar""footer footer";
+  gap:0;
+}
+
+/* ─── HEADER ─────────────────────────────────────── */
+header{
+  grid-area:header;
+  padding:16px 24px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  flex-wrap:wrap;
+}
+.logo{
+  font-family:var(--mono);
+  font-weight:600;
+  font-size:16px;
+  color:var(--accent);
+  letter-spacing:-.5px;
+  flex-shrink:0;
+}
+.logo span{color:var(--muted)}
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  flex:1;
+}
+.btn{
+  font-family:var(--mono);
+  font-size:12px;
+  font-weight:600;
+  padding:6px 11px;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--border);border-color:var(--muted)}
+.btn.danger:hover{background:#3a1a1a;border-color:var(--danger);color:var(--danger)}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:#0f1117}
+.btn.accent:hover{background:#d4963a}
+.sep{width:1px;background:var(--border);margin:0 2px;align-self:stretch}
+.flash{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--accent);
+  margin-left:auto;
+  opacity:0;
+  transition:opacity .3s;
+  flex-shrink:0;
+}
+.flash.show{opacity:1}
+
+/* ─── EDITOR ─────────────────────────────────────── */
+.editor-wrap{
+  grid-area:editor;
+  display:flex;
+  flex-direction:column;
+  border-right:1px solid var(--border);
+  min-height:0;
+}
+textarea{
+  flex:1;
+  min-height:420px;
+  padding:28px 32px;
+  font-family:var(--serif);
+  font-size:16px;
+  line-height:1.75;
+  background:var(--bg);
+  color:var(--text);
+  border:none;
+  resize:none;
+  outline:none;
+  caret-color:var(--accent);
+}
+textarea::placeholder{color:var(--muted);font-style:italic}
+textarea::selection{background:rgba(232,169,77,.25)}
+
+/* find/replace bar */
+.findbar{
+  display:none;
+  flex-direction:column;
+  gap:8px;
+  padding:12px 16px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+}
+.findbar.open{display:flex}
+.findbar-row{display:flex;gap:8px;align-items:center}
+.findbar input{
+  flex:1;
+  font-family:var(--mono);
+  font-size:13px;
+  padding:6px 10px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:var(--text);
+  outline:none;
+}
+.findbar input:focus{border-color:var(--accent2)}
+.match-count{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* ─── SIDEBAR ─────────────────────────────────────── */
+.sidebar{
+  grid-area:sidebar;
+  overflow-y:auto;
+  background:var(--surface);
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.panel{
+  padding:16px;
+  border-bottom:1px solid var(--border);
+}
+.panel-title{
+  font-family:var(--mono);
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:12px;
+}
+.stat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.stat{
+  background:var(--surface2);
+  border-radius:8px;
+  padding:10px 11px;
+}
+.stat-label{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:3px}
+.stat-value{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--text);line-height:1}
+.stat-value.accent{color:var(--accent)}
+.stat-sub{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px}
+
+/* readability meter */
+.readability-bar-wrap{margin-top:6px}
+.readability-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:5px}
+.readability-bar{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden}
+.readability-fill{height:100%;border-radius:3px;transition:width .4s,background .4s}
+
+/* word frequency */
+.freq-list{list-style:none;display:flex;flex-direction:column;gap:5px}
+.freq-item{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px}
+.freq-word{color:var(--text);min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.freq-bar-wrap{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.freq-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .4s}
+.freq-count{color:var(--muted);min-width:20px;text-align:right}
+
+/* transform buttons */
+.transform-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+
+/* ─── FOOTER ─────────────────────────────────────── */
+footer{
+  grid-area:footer;
+  padding:8px 24px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  border-top:1px solid var(--border);
+  background:var(--surface);
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--muted);
+  flex-wrap:wrap;
+}
+.footer-stat{display:flex;gap:4px}
+.footer-stat strong{color:var(--text)}
+
+/* ─── RESPONSIVE ─────────────────────────────────── */
+@media(max-width:720px){
+  body{grid-template-columns:1fr;grid-template-areas:"header""editor""sidebar""footer"}
+  .editor-wrap{border-right:none;border-bottom:1px solid var(--border)}
+  .sidebar{max-height:500px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">word<span>//</span>counter</div>
+  <div class="toolbar">
+    <button class="btn accent" id="copyBtn">Copy</button>
+    <button class="btn danger" id="clearBtn">Clear</button>
+    <div class="sep"></div>
+    <button class="btn" id="findBtn">Find &amp; Replace</button>
+    <div class="sep"></div>
+    <button class="btn" id="upperBtn">UPPER</button>
+    <button class="btn" id="lowerBtn">lower</button>
+    <button class="btn" id="titleBtn">Title</button>
+    <button class="btn" id="sentenceBtn">Sentence</button>
+    <div class="sep"></div>
+    <button class="btn" id="dedupBtn">Remove Duplicates</button>
+    <button class="btn" id="trimBtn">Trim Spaces</button>
+    <button class="btn" id="sortBtn">Sort A→Z</button>
+  </div>
+  <div class="flash" id="flash"></div>
+</header>
+
+<!-- EDITOR -->
+<div class="editor-wrap">
+  <textarea id="box" placeholder="Paste or type your text here…" spellcheck="true"></textarea>
+
+  <div class="findbar" id="findbar">
+    <div class="findbar-row">
+      <input id="findInput" placeholder="Find…" autocomplete="off"/>
+      <input id="replaceInput" placeholder="Replace with…" autocomplete="off"/>
+      <span class="match-count" id="matchCount"></span>
+    </div>
+    <div class="findbar-row">
+      <button class="btn" id="replaceOneBtn">Replace Next</button>
+      <button class="btn" id="replaceAllBtn">Replace All</button>
+      <button class="btn" id="closeFindBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <!-- Core stats -->
+  <div class="panel">
+    <div class="panel-title">Counts</div>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-label">Words</div>
+        <div class="stat-value accent" id="sWords">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Characters</div>
+        <div class="stat-value" id="sChars">0</div>
+        <div class="stat-sub" id="sCharsNoSpace">0 no spaces</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Sentences</div>
+        <div class="stat-value" id="sSentences">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Paragraphs</div>
+        <div class="stat-value" id="sParagraphs">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Lines</div>
+        <div class="stat-value" id="sLines">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Unique Words</div>
+        <div class="stat-value" id="sUnique">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Time -->
+  <div class="panel">
+    <div class="panel-title">Time Estimates</div>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-label">Reading</div>
+        <div class="stat-value accent" id="sRead">0 min</div>
+        <div class="stat-sub">~200 wpm</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Speaking</div>
+        <div class="stat-value" id="sSpeak">0 min</div>
+        <div class="stat-sub">~130 wpm</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Readability -->
+  <div class="panel">
+    <div class="panel-title">Readability</div>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-label">Flesch Score</div>
+        <div class="stat-value" id="sFlesch">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Grade Level</div>
+        <div class="stat-value" id="sGrade">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Avg Word Len</div>
+        <div class="stat-value" id="sAvgWord">—</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Avg Sent Len</div>
+        <div class="stat-value" id="sAvgSent">—</div>
+      </div>
+    </div>
+    <div class="readability-bar-wrap">
+      <div class="readability-label">
+        <span>Hard</span>
+        <span id="sReadLabel">—</span>
+        <span>Easy</span>
+      </div>
+      <div class="readability-bar">
+        <div class="readability-fill" id="sReadFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top words -->
+  <div class="panel">
+    <div class="panel-title">Top Words</div>
+    <ul class="freq-list" id="freqList">
+      <li style="font-family:var(--mono);font-size:12px;color:var(--muted)">Type to see frequency</li>
+    </ul>
+  </div>
+</aside>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-stat">Longest word: <strong id="fLongest">—</strong></div>
+  <div class="footer-stat">Selection: <strong id="fSel">0 words</strong></div>
+  <div class="footer-stat">Cursor: line <strong id="fLine">1</strong>, col <strong id="fCol">1</strong></div>
+</footer>
+
+<script>
+(function(){
+  const box      = document.getElementById('box');
+  const flashEl  = document.getElementById('flash');
+
+  // stats
+  const sWords    = document.getElementById('sWords');
+  const sChars    = document.getElementById('sChars');
+  const sCharsNoSpace = document.getElementById('sCharsNoSpace');
+  const sSentences= document.getElementById('sSentences');
+  const sParagraphs=document.getElementById('sParagraphs');
+  const sLines    = document.getElementById('sLines');
+  const sUnique   = document.getElementById('sUnique');
+  const sRead     = document.getElementById('sRead');
+  const sSpeak    = document.getElementById('sSpeak');
+  const sFlesch   = document.getElementById('sFlesch');
+  const sGrade    = document.getElementById('sGrade');
+  const sAvgWord  = document.getElementById('sAvgWord');
+  const sAvgSent  = document.getElementById('sAvgSent');
+  const sReadLabel= document.getElementById('sReadLabel');
+  const sReadFill = document.getElementById('sReadFill');
+  const freqList  = document.getElementById('freqList');
+  const fLongest  = document.getElementById('fLongest');
+  const fSel      = document.getElementById('fSel');
+  const fLine     = document.getElementById('fLine');
+  const fCol      = document.getElementById('fCol');
+
+  // ── Syllable counter (approx) ──────────────────────
+  function countSyllables(word){
+    word = word.toLowerCase().replace(/[^a-z]/g,'');
+    if(!word) return 0;
+    if(word.length<=3) return 1;
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/,'').replace(/^y/,'');
+    const m = word.match(/[aeiouy]{1,2}/g);
+    return m ? m.length : 1;
+  }
+
+  // ── Format minutes ─────────────────────────────────
+  function fmtTime(wpm, wc){
+    if(wc===0) return '0 min';
+    const secs = Math.round(wc/wpm*60);
+    if(secs<60) return secs+'s';
+    const m=Math.floor(secs/60), s=secs%60;
+    return s>0 ? m+'m '+s+'s' : m+' min';
+  }
+
+  // ── Flesch reading ease ────────────────────────────
+  function fleschEase(words, sentences, syllables){
+    if(words===0||sentences===0) return null;
+    const score = 206.835 - 1.015*(words/sentences) - 84.6*(syllables/words);
+    return Math.max(0,Math.min(100,score));
+  }
+
+  function fleschLabel(score){
+    if(score===null) return ['—','transparent'];
+    if(score>=90) return ['Very Easy','#4caf6e'];
+    if(score>=80) return ['Easy','#7bc47e'];
+    if(score>=70) return ['Fairly Easy','#a8d05a'];
+    if(score>=60) return ['Standard','#e8a94d'];
+    if(score>=50) return ['Fairly Difficult','#e0855c'];
+    if(score>=30) return ['Difficult','#d96060'];
+    return ['Very Difficult','#c0392b'];
+  }
+
+  // ── Grade level (Flesch-Kincaid) ──────────────────
+  function fkGrade(words, sentences, syllables){
+    if(words===0||sentences===0) return null;
+    const g = 0.39*(words/sentences)+11.8*(syllables/words)-15.59;
+    return Math.max(1,Math.round(g));
+  }
+
+  // ── Main update ────────────────────────────────────
+  function update(){
+    const raw  = box.value;
+    const text = raw.trim();
+
+    const words     = text ? (text.match(/\b[a-zA-Z'-]+\b/g)||[]) : [];
+    const sentences = text ? (text.match(/[^.!?]*[.!?]+/g)||[]) : [];
+    const paras     = text ? text.split(/\n+/).filter(p=>p.trim()) : [];
+    const lines     = raw.split('\n');
+
+    const wc  = words.length;
+    const sc  = sentences.length;
+    const lc  = lines.length;
+    const pc  = paras.length;
+    const cc  = text.length;
+    const ccn = text.replace(/\s/g,'').length;
+
+    // unique
+    const unique = new Set(words.map(w=>w.toLowerCase())).size;
+
+    // syllables
+    let totalSyl = 0;
+    words.forEach(w=>{ totalSyl+=countSyllables(w); });
+
+    // readability
+    const flesch = fleschEase(wc,sc,totalSyl);
+    const grade  = fkGrade(wc,sc,totalSyl);
+    const [rl, rc] = fleschLabel(flesch);
+
+    // avg lengths
+    const avgWord = wc ? (words.reduce((s,w)=>s+w.length,0)/wc).toFixed(1) : '—';
+    const avgSent = (wc&&sc) ? (wc/sc).toFixed(1)+' w' : '—';
+
+    // longest
+    const longest = wc ? words.reduce((a,b)=>a.length>=b.length?a:b,'') : '—';
+
+    // freq
+    const freq = {};
+    words.forEach(w=>{ const lw=w.toLowerCase(); freq[lw]=(freq[lw]||0)+1; });
+    const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+    // ── Render ────────────────────────────────────────
+    sWords.textContent     = wc;
+    sChars.textContent     = cc;
+    sCharsNoSpace.textContent = ccn+' no spaces';
+    sSentences.textContent = sc;
+    sParagraphs.textContent= pc;
+    sLines.textContent     = lc;
+    sUnique.textContent    = unique;
+
+    sRead.textContent  = fmtTime(200, wc);
+    sSpeak.textContent = fmtTime(130, wc);
+
+    sFlesch.textContent  = flesch!==null ? Math.round(flesch) : '—';
+    sGrade.textContent   = grade!==null ? 'G'+grade : '—';
+    sAvgWord.textContent = avgWord+(avgWord!=='—'?' ch':'');
+    sAvgSent.textContent = avgSent;
+    sReadLabel.textContent = rl;
+    sReadFill.style.width    = flesch!==null ? flesch+'%' : '0%';
+    sReadFill.style.background = rc;
+
+    fLongest.textContent = longest;
+
+    // freq list
+    if(sorted.length){
+      const max = sorted[0][1];
+      freqList.innerHTML = sorted.map(([w,n])=>`
+        <li class="freq-item">
+          <span class="freq-word">${w}</span>
+          <span class="freq-bar-wrap"><span class="freq-bar" style="width:${(n/max*100).toFixed(0)}%"></span></span>
+          <span class="freq-count">${n}</span>
+        </li>`).join('');
+    } else {
+      freqList.innerHTML='<li style="font-family:var(--mono);font-size:12px;color:var(--muted)">Type to see frequency</li>';
+    }
+  }
+
+  // ── Cursor / selection ─────────────────────────────
+  function updateCursor(){
+    const val = box.value;
+    const pos = box.selectionStart;
+    const before = val.slice(0,pos);
+    fLine.textContent = (before.match(/\n/g)||[]).length+1;
+    fCol.textContent  = pos-(before.lastIndexOf('\n')+1)+1;
+
+    const sel = val.slice(box.selectionStart, box.selectionEnd).trim();
+    const selWords = sel ? (sel.match(/\b[a-zA-Z'-]+\b/g)||[]).length : 0;
+    fSel.textContent = selWords+' words';
+  }
+
+  box.addEventListener('input', ()=>{ update(); updateCursor(); });
+  box.addEventListener('keyup', updateCursor);
+  box.addEventListener('mouseup', updateCursor);
+  box.addEventListener('click', updateCursor);
+  box.addEventListener('paste', e=>{
+    e.preventDefault();
+    const txt = (e.clipboardData||window.clipboardData).getData('text/plain');
+    const s=box.selectionStart, en=box.selectionEnd;
+    box.value = box.value.slice(0,s)+txt+box.value.slice(en);
+    box.setSelectionRange(s+txt.length,s+txt.length);
+    update(); updateCursor();
+  });
+
+  // ── Flash ──────────────────────────────────────────
+  let ft;
+  function flash(msg){
+    flashEl.textContent=msg;
+    flashEl.classList.add('show');
+    clearTimeout(ft);
+    ft=setTimeout(()=>flashEl.classList.remove('show'),1600);
+  }
+
+  // ── Toolbar buttons ───────────────────────────────
+  document.getElementById('copyBtn').addEventListener('click',async()=>{
+    if(!box.value){flash('Nothing to copy');return;}
+    try{await navigator.clipboard.writeText(box.value);flash('Copied ✓');}
+    catch{flash('Copy failed');}
+  });
+
+  document.getElementById('clearBtn').addEventListener('click',()=>{
+    if(box.value&&!confirm('Clear all text?')) return;
+    box.value=''; update(); updateCursor(); flash('Cleared');
+  });
+
+  document.getElementById('upperBtn').addEventListener('click',()=>{
+    box.value=box.value.toUpperCase(); update(); flash('UPPERCASE');
+  });
+  document.getElementById('lowerBtn').addEventListener('click',()=>{
+    box.value=box.value.toLowerCase(); update(); flash('lowercase');
+  });
+  document.getElementById('titleBtn').addEventListener('click',()=>{
+    box.value=box.value.replace(/\b\w/g,c=>c.toUpperCase()); update(); flash('Title Case');
+  });
+  document.getElementById('sentenceBtn').addEventListener('click',()=>{
+    box.value=box.value.toLowerCase().replace(/(^\s*\w|[.!?]\s*\w)/g,c=>c.toUpperCase());
+    update(); flash('Sentence case');
+  });
+
+  document.getElementById('dedupBtn').addEventListener('click',()=>{
+    const lines=[...new Set(box.value.split('\n'))];
+    box.value=lines.join('\n'); update(); flash('Duplicates removed');
+  });
+  document.getElementById('trimBtn').addEventListener('click',()=>{
+    box.value=box.value.replace(/[^\S\n]+/g,' ').replace(/^ | $/gm,'').trim();
+    update(); flash('Spaces trimmed');
+  });
+  document.getElementById('sortBtn').addEventListener('click',()=>{
+    box.value=box.value.split('\n').sort((a,b)=>a.localeCompare(b)).join('\n');
+    update(); flash('Sorted A→Z');
+  });
+
+  // ── Find & Replace ────────────────────────────────
+  const findbar    = document.getElementById('findbar');
+  const findInput  = document.getElementById('findInput');
+  const replaceInput=document.getElementById('replaceInput');
+  const matchCount = document.getElementById('matchCount');
+
+  document.getElementById('findBtn').addEventListener('click',()=>{
+    findbar.classList.toggle('open');
+    if(findbar.classList.contains('open')) findInput.focus();
+  });
+  document.getElementById('closeFindBtn').addEventListener('click',()=>{
+    findbar.classList.remove('open'); matchCount.textContent='';
+  });
+
+  function countMatches(){
+    const q=findInput.value;
+    if(!q){matchCount.textContent='';return 0;}
+    try{
+      const re=new RegExp(q,'gi');
+      const m=box.value.match(re);
+      const n=m?m.length:0;
+      matchCount.textContent=n+' match'+(n!==1?'es':'');
+      return n;
+    }catch{matchCount.textContent='bad regex';return 0;}
+  }
+
+  findInput.addEventListener('input',countMatches);
+
+  document.getElementById('replaceOneBtn').addEventListener('click',()=>{
+    const q=findInput.value, r=replaceInput.value;
+    if(!q) return;
+    try{
+      const re=new RegExp(q,'i');
+      const next=box.value.search(re);
+      if(next<0){flash('No match');return;}
+      box.value=box.value.replace(re,r);
+      box.setSelectionRange(next,next+r.length);
+      update(); countMatches(); flash('Replaced 1');
+    }catch{flash('Bad regex');}
+  });
+
+  document.getElementById('replaceAllBtn').addEventListener('click',()=>{
+    const q=findInput.value, r=replaceInput.value;
+    if(!q) return;
+    try{
+      const re=new RegExp(q,'gi');
+      const count=(box.value.match(re)||[]).length;
+      box.value=box.value.replace(re,r);
+      update(); countMatches(); flash('Replaced '+count);
+    }catch{flash('Bad regex');}
+  });
+
+  // ── Keyboard shortcuts ────────────────────────────
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='h'){
+      e.preventDefault();
+      findbar.classList.toggle('open');
+      if(findbar.classList.contains('open')) findInput.focus();
+    }
+  });
+
+  update(); updateCursor();
+})();
+</script>
+</body>
+</html>
