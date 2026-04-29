@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>QuizBlast</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;900&family=Fredoka+One&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0d0f1a;
+  --surface:#161929;
+  --surface2:#1e2338;
+  --border:#2a3050;
+  --text:#f0eeff;
+  --muted:#7a80a0;
+  --A:#ff4757;--Ah:#ff6b78;
+  --B:#2ed573;--Bh:#55e08a;
+  --C:#1e90ff;--Ch:#50aaff;
+  --D:#ffa502;--Dh:#ffbc3f;
+  --radius:14px;
+  --ff-head:'Fredoka One',cursive;
+  --ff-body:'Nunito',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--ff-body)}
+
+/* ═══ SCREEN SYSTEM ═══════════════════════════════════ */
+.screen{display:none;min-height:100vh;flex-direction:column;animation:fadeUp .35s ease}
+.screen.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══ SHARED ══════════════════════════════════════════ */
+.btn{
+  font-family:var(--ff-body);font-weight:700;font-size:15px;
+  padding:12px 22px;border-radius:10px;border:none;cursor:pointer;
+  transition:transform .12s,box-shadow .12s,opacity .12s;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:linear-gradient(135deg,#7b5ea7,#5b8dee);color:#fff}
+.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:#3a1520;color:var(--A);border:1px solid var(--A)}
+.btn-green{background:linear-gradient(135deg,#1fa35c,#2ed573);color:#fff}
+.btn-sm{font-size:13px;padding:7px 13px;border-radius:8px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.5px}
+input,textarea,select{
+  font-family:var(--ff-body);font-size:14px;
+  background:var(--surface2);color:var(--text);
+  border:1px solid var(--border);border-radius:10px;
+  padding:10px 14px;outline:none;width:100%;
+  transition:border-color .2s;
+}
+input:focus,textarea:focus,select:focus{border-color:#7b5ea7}
+textarea{resize:vertical;min-height:100px}
+label{font-size:13px;font-weight:700;color:var(--muted);display:block;margin-bottom:5px;letter-spacing:.5px;text-transform:uppercase}
+.logo{font-family:var(--ff-head);font-size:32px;background:linear-gradient(90deg,#ff4757,#ffa502,#2ed573,#1e90ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ═══ HOME ════════════════════════════════════════════ */
+#s-home{align-items:center;justify-content:center;padding:40px 20px;gap:16px;background:radial-gradient(ellipse at 30% 20%,rgba(123,94,167,.18) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(30,144,255,.12) 0%,transparent 50%),var(--bg)}
+#s-home .subtitle{color:var(--muted);font-size:16px;text-align:center;max-width:420px;margin-bottom:8px}
+.mode-cards{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;max-width:800px;width:100%}
+.mode-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  padding:28px 28px;flex:1;min-width:220px;max-width:260px;cursor:pointer;
+  text-align:center;transition:border-color .2s,transform .2s,box-shadow .2s;
+}
+.mode-card:hover{border-color:#7b5ea7;transform:translateY(-4px);box-shadow:0 12px 40px rgba(123,94,167,.25)}
+.mode-icon{font-size:44px;margin-bottom:12px}
+.mode-card h3{font-family:var(--ff-head);font-size:20px;margin-bottom:6px}
+.mode-card p{color:var(--muted);font-size:13px;line-height:1.5}
+
+/* ═══ BUILDER ═════════════════════════════════════════ */
+#s-build{padding:0}
+.builder-header{
+  display:flex;align-items:center;gap:12px;padding:16px 24px;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;
+}
+.builder-header .logo{font-size:22px}
+.builder-title-input{
+  flex:1;font-family:var(--ff-head);font-size:20px;background:transparent;
+  border:none;border-bottom:2px solid var(--border);border-radius:0;padding:4px 8px;
+  color:var(--text);min-width:160px;
+}
+.builder-title-input:focus{border-bottom-color:#7b5ea7;outline:none}
+.builder-body{display:flex;flex:1;min-height:0;overflow:hidden}
+.q-list{
+  width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);
+  overflow-y:auto;display:flex;flex-direction:column;
+}
+.q-list-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.q-list-header span{font-weight:700;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.q-card{
+  padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;
+  display:flex;align-items:flex-start;gap:10px;transition:background .15s;
+}
+.q-card:hover{background:var(--surface2)}
+.q-card.selected{background:rgba(123,94,167,.15);border-left:3px solid #7b5ea7}
+.q-num{font-family:var(--ff-head);font-size:14px;color:var(--muted);min-width:20px}
+.q-preview{font-size:13px;line-height:1.4;flex:1;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.q-del{background:none;border:none;color:var(--muted);cursor:pointer;padding:2px 5px;border-radius:4px;font-size:14px;transition:color .15s}
+.q-del:hover{color:var(--A)}
+.q-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:13px}
+
+.q-editor{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
+.q-editor-placeholder{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px;text-align:center}
+.editor-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:14px}
+.editor-section h4{font-family:var(--ff-head);font-size:18px;color:var(--muted)}
+.opt-row{display:flex;gap:8px;align-items:center}
+.opt-badge{
+  width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff-head);font-size:14px;color:#fff;flex-shrink:0;cursor:pointer;
+  transition:transform .12s;border:2px solid transparent;
+}
+.opt-badge:hover{transform:scale(1.1)}
+.opt-badge.correct{box-shadow:0 0 0 3px white}
+.opt-A{background:var(--A)}.opt-B{background:var(--B)}.opt-C{background:var(--C)}.opt-D{background:var(--D)}
+.timer-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.timer-chip{
+  padding:7px 14px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);
+  font-family:var(--ff-head);font-size:14px;cursor:pointer;transition:border-color .15s,color .15s;
+}
+.timer-chip.selected{border-color:#7b5ea7;color:#c5a8ff}
+.builder-launch{padding:16px 24px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.q-count-badge{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700}
+
+/* ═══ AI MODE ═════════════════════════════════════════ */
+#s-ai{align-items:center;justify-content:center;padding:40px 20px;gap:0;background:radial-gradient(ellipse at 60% 10%,rgba(30,144,255,.12) 0%,transparent 55%),var(--bg)}
+.ai-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:36px;max-width:560px;width:100%;display:flex;flex-direction:column;gap:18px}
+.ai-card .logo{font-size:26px;margin-bottom:4px}
+.ai-card h2{font-family:var(--ff-head);font-size:26px}
+.ai-card p{color:var(--muted);font-size:14px;line-height:1.6}
+.num-row{display:flex;gap:8px;flex-wrap:wrap}
+.num-chip{
+  padding:8px 16px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);
+  font-family:var(--ff-head);font-size:15px;cursor:pointer;transition:border-color .15s;
+}
+.num-chip.selected{border-color:#2ed573;color:#2ed573}
+.ai-status{font-size:14px;color:var(--muted);text-align:center;min-height:20px}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:#7b5ea7;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══ PASTE MODE ══════════════════════════════════════ */
+#s-paste{align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 40% 70%,rgba(255,71,87,.1) 0%,transparent 55%),var(--bg)}
+.paste-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:32px;max-width:620px;width:100%;display:flex;flex-direction:column;gap:16px}
+.paste-card h2{font-family:var(--ff-head);font-size:26px}
+.paste-card p{color:var(--muted);font-size:14px;line-height:1.6}
+.paste-format{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:12px;font-family:monospace;color:var(--muted);line-height:1.8;white-space:pre}
+.paste-error{color:var(--A);font-size:13px;font-weight:700;display:none}
+
+/* ═══ PLAY ════════════════════════════════════════════ */
+#s-play{padding:0}
+.play-topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border);
+}
+.play-quiz-title{font-family:var(--ff-head);font-size:18px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+.play-score-badge{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px 16px;font-family:var(--ff-head);font-size:16px}
+.play-score-badge span{color:#ffa502}
+
+.timer-bar-wrap{height:7px;background:var(--surface2)}
+.timer-bar{height:100%;background:linear-gradient(90deg,#7b5ea7,#1e90ff);transform-origin:left;transition:transform linear}
+
+.play-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;gap:24px;max-width:800px;margin:0 auto;width:100%}
+.q-progress{font-family:var(--ff-head);font-size:15px;color:var(--muted)}
+.q-text{
+  font-family:var(--ff-head);font-size:clamp(20px,3.5vw,30px);text-align:center;
+  line-height:1.35;max-width:680px;
+}
+.answers-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:680px}
+.ans-btn{
+  display:flex;align-items:center;gap:12px;
+  padding:18px 20px;border-radius:14px;border:none;cursor:pointer;
+  font-family:var(--ff-body);font-weight:700;font-size:clamp(14px,2vw,17px);
+  text-align:left;color:#fff;transition:transform .12s,box-shadow .12s,filter .2s;
+  animation:popIn .25s ease backwards;
+}
+.ans-btn:nth-child(1){animation-delay:.05s}.ans-btn:nth-child(2){animation-delay:.1s}
+.ans-btn:nth-child(3){animation-delay:.15s}.ans-btn:nth-child(4){animation-delay:.2s}
+@keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.ans-btn:hover:not(:disabled){transform:translateY(-3px) scale(1.02);box-shadow:0 8px 28px rgba(0,0,0,.5)}
+.ans-btn:disabled{cursor:default}
+.ans-A{background:var(--A)}.ans-B{background:var(--B)}.ans-C{background:var(--C)}.ans-D{background:var(--D)}
+.ans-letter{
+  width:32px;height:32px;border-radius:8px;background:rgba(0,0,0,.25);
+  display:flex;align-items:center;justify-content:center;font-family:var(--ff-head);font-size:16px;flex-shrink:0;
+}
+.ans-btn.correct{animation:correctPop .4s ease!important;box-shadow:0 0 0 4px white,0 8px 32px rgba(0,0,0,.5)}
+.ans-btn.wrong{filter:brightness(.45) saturate(.3)}
+.ans-btn.reveal-correct{animation:correctPop .4s ease!important;box-shadow:0 0 0 4px white,0 8px 32px rgba(0,0,0,.5)}
+@keyframes correctPop{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+.feedback-bar{
+  min-height:54px;display:flex;align-items:center;justify-content:center;gap:10px;
+  font-family:var(--ff-head);font-size:22px;
+}
+.feedback-bar.correct-fb{color:#2ed573}
+.feedback-bar.wrong-fb{color:var(--A)}
+
+/* ═══ RESULTS ═════════════════════════════════════════ */
+#s-results{align-items:center;justify-content:center;padding:40px 20px;background:radial-gradient(ellipse at 50% 30%,rgba(46,213,115,.12) 0%,transparent 55%),var(--bg)}
+.results-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:36px;max-width:520px;width:100%;text-align:center;display:flex;flex-direction:column;gap:16px}
+.results-card h2{font-family:var(--ff-head);font-size:32px}
+.big-score{font-family:var(--ff-head);font-size:72px;line-height:1;background:linear-gradient(135deg,#ffa502,#ff4757);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.score-label{color:var(--muted);font-size:15px}
+.result-list{list-style:none;display:flex;flex-direction:column;gap:6px;text-align:left;max-height:280px;overflow-y:auto}
+.result-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;font-size:13px}
+.result-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.result-q{flex:1;font-weight:600;color:var(--text)}
+.result-a{color:var(--muted);font-size:12px;margin-top:2px}
+.results-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.confetti-wrap{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:999}
+.confetti-piece{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall linear forwards}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* ═══ RESPONSIVE ══════════════════════════════════════ */
+@media(max-width:640px){
+  .builder-body{flex-direction:column}
+  .q-list{width:100%;max-height:200px;border-right:none;border-bottom:1px solid var(--border)}
+  .answers-grid{grid-template-columns:1fr}
+  .mode-card{min-width:160px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HOME ═══════════════════════════════════════════ -->
+<div class="screen active" id="s-home">
+  <div class="logo" style="margin-bottom:4px">QuizBlast ⚡</div>
+  <p class="subtitle">Make quizzes, play quizzes, blast through knowledge.</p>
+  <div class="mode-cards">
+    <div class="mode-card" onclick="showScreen('s-build');initBuilder()">
+      <div class="mode-icon">🛠️</div>
+      <h3>Build Your Own</h3>
+      <p>Create questions manually with custom answers, timers, and launch when ready.</p>
+    </div>
+    <div class="mode-card" onclick="showScreen('s-ai')">
+      <div class="mode-icon">🤖</div>
+      <h3>AI Generate</h3>
+      <p>Type a topic and let AI build a full quiz for you instantly.</p>
+    </div>
+    <div class="mode-card" onclick="showScreen('s-paste')">
+      <div class="mode-icon">📋</div>
+      <h3>Paste & Play</h3>
+      <p>Paste any text quiz from ChatGPT or Claude and it'll become interactive.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BUILDER ═════════════════════════════════════════ -->
+<div class="screen" id="s-build">
+  <div class="builder-header">
+    <div class="logo">QB</div>
+    <input class="builder-title-input" id="quizTitle" placeholder="Quiz title…" value="My Quiz"/>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('s-home')">← Home</button>
+    </div>
+  </div>
+  <div class="builder-body">
+    <!-- Question list -->
+    <div class="q-list">
+      <div class="q-list-header">
+        <span id="qListCount">0 Questions</span>
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,#7b5ea7,#5b8dee);color:#fff;border:none" onclick="addQuestion()">+ Add</button>
+      </div>
+      <div id="qListBody">
+        <div class="q-empty">No questions yet.<br/>Click + Add to start.</div>
+      </div>
+    </div>
+    <!-- Editor -->
+    <div class="q-editor" id="qEditor">
+      <div class="q-editor-placeholder">👈 Select a question to edit,<br>or click <strong>+ Add</strong> to create one.</div>
+    </div>
+  </div>
+  <div class="builder-launch">
+    <span class="q-count-badge" id="launchCount">0 questions</span>
+    <button class="btn btn-green" onclick="launchBuilderQuiz()">▶ Launch Quiz</button>
+    <span id="builderError" style="color:var(--A);font-size:13px"></span>
+  </div>
+</div>
+
+<!-- ═══ AI MODE ══════════════════════════════════════════ -->
+<div class="screen" id="s-ai">
+  <div class="ai-card">
+    <div class="logo">QuizBlast ⚡</div>
+    <h2>AI Quiz Generator</h2>
+    <p>Describe a topic and choose how many questions. Claude will build a complete quiz for you.</p>
+    <div>
+      <label>Topic or prompt</label>
+      <textarea id="aiPrompt" placeholder="e.g. World War II, Python programming, Harry Potter, the solar system…"></textarea>
+    </div>
+    <div>
+      <label>Number of questions</label>
+      <div class="num-row">
+        <div class="num-chip selected" data-num="5" onclick="selectNum(this)">5</div>
+        <div class="num-chip" data-num="8" onclick="selectNum(this)">8</div>
+        <div class="num-chip" data-num="10" onclick="selectNum(this)">10</div>
+        <div class="num-chip" data-num="15" onclick="selectNum(this)">15</div>
+      </div>
+    </div>
+    <div>
+      <label>Difficulty</label>
+      <select id="aiDiff">
+        <option value="mixed">Mixed</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="aiGenBtn" onclick="generateAIQuiz()">✨ Generate Quiz</button>
+    <div class="ai-status" id="aiStatus"></div>
+    <button class="btn btn-ghost btn-sm" onclick="showScreen('s-home')">← Back</button>
+  </div>
+</div>
+
+<!-- ═══ PASTE MODE ═══════════════════════════════════════ -->
+<div class="screen" id="s-paste">
+  <div class="paste-card">
+    <h2>📋 Paste & Play</h2>
+    <p>Paste a quiz in plain text format below. Supports numbered questions with A/B/C/D options and an Answer line.</p>
+    <div class="paste-format">1. What is the capital of France?
+A) Berlin
+B) Paris
+C) Madrid
+D) Rome
+Answer: B
+
+2. Who wrote Romeo and Juliet?
+...</div>
+    <div>
+      <label>Paste quiz text here</label>
+      <textarea id="pasteBox" style="min-height:200px" placeholder="Paste your quiz text…"></textarea>
+    </div>
+    <div class="paste-error" id="pasteError"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="parsePasteQuiz()">▶ Play Quiz</button>
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('s-home')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PLAY ═════════════════════════════════════════════ -->
+<div class="screen" id="s-play">
+  <div class="play-topbar">
+    <div class="play-quiz-title" id="playTitle">Quiz</div>
+    <div class="play-score-badge">Score: <span id="scoreDisplay">0</span></div>
+    <button class="btn btn-ghost btn-sm" onclick="if(confirm('Quit quiz?'))endQuiz()">Quit</button>
+  </div>
+  <div class="timer-bar-wrap">
+    <div class="timer-bar" id="timerBar"></div>
+  </div>
+  <div class="play-body">
+    <div class="q-progress" id="qProgress">Question 1 of 10</div>
+    <div class="q-text" id="qText">Loading…</div>
+    <div class="answers-grid" id="answersGrid"></div>
+    <div class="feedback-bar" id="feedbackBar"></div>
+  </div>
+</div>
+
+<!-- ═══ RESULTS ═══════════════════════════════════════════ -->
+<div class="screen" id="s-results">
+  <div class="confetti-wrap" id="confettiWrap"></div>
+  <div class="results-card">
+    <div class="logo" style="font-size:22px">QuizBlast ⚡</div>
+    <h2 id="resultsTitle">Quiz Complete!</h2>
+    <div class="big-score" id="bigScore">0/0</div>
+    <div class="score-label" id="scoreLabel">Great effort!</div>
+    <ul class="result-list" id="resultList"></ul>
+    <div class="results-actions">
+      <button class="btn btn-green" id="retryBtn" onclick="retryQuiz()">🔁 Play Again</button>
+      <button class="btn btn-ghost" onclick="showScreen('s-home')">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let questions = []; // current quiz
+let currentQ  = 0;
+let score     = 0;
+let timerInterval = null;
+let answerHistory = []; // {question,chosen,correct,correctIdx}
+let selectedNum = 5;
+let builderQuestions = []; // {question,options:[],correct:0,time:20}
+let editingIdx = -1;
+
+// ═══════════════════════════════════════════════════════
+// SCREEN NAV
+// ═══════════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// BUILDER
+// ═══════════════════════════════════════════════════════
+function initBuilder(){ builderQuestions=[]; editingIdx=-1; renderQList(); renderQEditor(); }
+
+function addQuestion(){
+  builderQuestions.push({question:'',options:['','','',''],correct:0,time:20});
+  editingIdx = builderQuestions.length-1;
+  renderQList(); renderQEditor();
+}
+
+function deleteQuestion(i,e){
+  e.stopPropagation();
+  builderQuestions.splice(i,1);
+  if(editingIdx>=builderQuestions.length) editingIdx=builderQuestions.length-1;
+  renderQList(); renderQEditor();
+}
+
+function selectQ(i){ editingIdx=i; renderQList(); renderQEditor(); }
+
+function renderQList(){
+  const body=document.getElementById('qListBody');
+  const count=document.getElementById('qListCount');
+  const lcount=document.getElementById('launchCount');
+  count.textContent=builderQuestions.length+' Question'+(builderQuestions.length!==1?'s':'');
+  lcount.textContent=builderQuestions.length+' question'+(builderQuestions.length!==1?'s':'');
+  if(!builderQuestions.length){body.innerHTML='<div class="q-empty">No questions yet.<br/>Click + Add to start.</div>';return;}
+  body.innerHTML=builderQuestions.map((q,i)=>`
+    <div class="q-card ${i===editingIdx?'selected':''}" onclick="selectQ(${i})">
+      <span class="q-num">${i+1}</span>
+      <span class="q-preview">${q.question||'<em style="color:var(--muted)">No question text</em>'}</span>
+      <button class="q-del" onclick="deleteQuestion(${i},event)">✕</button>
+    </div>`).join('');
+}
+
+function renderQEditor(){
+  const ed=document.getElementById('qEditor');
+  if(editingIdx<0||editingIdx>=builderQuestions.length){
+    ed.innerHTML='<div class="q-editor-placeholder">👈 Select a question to edit,<br>or click <strong>+ Add</strong> to create one.</div>';
+    return;
+  }
+  const q=builderQuestions[editingIdx];
+  const optColors=['A','B','C','D'];
+  ed.innerHTML=`
+    <div class="editor-section">
+      <h4>Question ${editingIdx+1}</h4>
+      <div><label>Question Text</label>
+        <textarea id="edQ" placeholder="Type your question…" oninput="updateQ('question',this.value)">${q.question}</textarea>
+      </div>
+      <label>Answer Options — click a colored badge to mark correct</label>
+      ${q.options.map((o,i)=>`
+        <div class="opt-row">
+          <div class="opt-badge opt-${optColors[i]} ${q.correct===i?'correct':''}" onclick="setCorrect(${i})" title="Mark as correct">${optColors[i]}</div>
+          <input value="${o}" placeholder="Option ${optColors[i]}…" oninput="updateOpt(${i},this.value)"/>
+        </div>`).join('')}
+      <div>
+        <label>Time Limit</label>
+        <div class="timer-row">
+          ${[10,15,20,30,45,60].map(t=>`<div class="timer-chip ${q.time===t?'selected':''}" onclick="setTime(${t})">${t}s</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+function updateQ(field,val){ if(editingIdx<0) return; builderQuestions[editingIdx][field]=val; renderQList(); }
+function updateOpt(i,val){ if(editingIdx<0) return; builderQuestions[editingIdx].options[i]=val; }
+function setCorrect(i){ if(editingIdx<0) return; builderQuestions[editingIdx].correct=i; renderQEditor(); }
+function setTime(t){ if(editingIdx<0) return; builderQuestions[editingIdx].time=t; renderQEditor(); }
+
+function launchBuilderQuiz(){
+  const err=document.getElementById('builderError');
+  if(!builderQuestions.length){err.textContent='Add at least one question!';return;}
+  const bad=builderQuestions.find(q=>!q.question.trim()||q.options.some(o=>!o.trim()));
+  if(bad){err.textContent='All questions and options need text.';return;}
+  err.textContent='';
+  const title=document.getElementById('quizTitle').value||'My Quiz';
+  startQuiz(builderQuestions.map(q=>({...q})),title);
+}
+
+// ═══════════════════════════════════════════════════════
+// AI GENERATION
+// ═══════════════════════════════════════════════════════
+function selectNum(el){
+  document.querySelectorAll('.num-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedNum=parseInt(el.dataset.num);
+}
+
+async function generateAIQuiz(){
+  const prompt=document.getElementById('aiPrompt').value.trim();
+  const diff=document.getElementById('aiDiff').value;
+  const status=document.getElementById('aiStatus');
+  const btn=document.getElementById('aiGenBtn');
+  if(!prompt){status.textContent='Please enter a topic.';return;}
+
+  btn.disabled=true;
+  status.innerHTML='<span class="spinner"></span>Generating your quiz…';
+
+  const systemPrompt=`You are a quiz generator. Return ONLY valid JSON, no markdown, no extra text.
+Generate a ${selectedNum}-question multiple choice quiz about: "${prompt}"
+Difficulty: ${diff}
+Format exactly:
+{"title":"<quiz title>","questions":[{"question":"<question>","options":["<A>","<B>","<C>","<D>"],"correct":<0-3>,"time":20}]}
+Rules: correct is 0-indexed. All options must be distinct and plausible. No markdown.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:systemPrompt,
+        messages:[{role:'user',content:`Create a ${selectedNum}-question quiz about: ${prompt}`}]
+      })
+    });
+    const data=await res.json();
+    let text=data.content?.map(b=>b.text||'').join('').trim();
+    // strip possible markdown fences
+    text=text.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
+    const quiz=JSON.parse(text);
+    if(!quiz.questions?.length) throw new Error('No questions');
+    btn.disabled=false; status.textContent='';
+    startQuiz(quiz.questions,quiz.title||prompt);
+  }catch(e){
+    btn.disabled=false;
+    status.innerHTML='<span style="color:var(--A)">Error: '+e.message+'</span>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PASTE PARSER
+// ═══════════════════════════════════════════════════════
+function parsePasteQuiz(){
+  const text=document.getElementById('pasteBox').value;
+  const errEl=document.getElementById('pasteError');
+  errEl.style.display='none';
+
+  // Split on blank lines between questions
+  const blocks=text.split(/\n\s*\n/).filter(b=>b.trim());
+  const parsed=[];
+
+  for(const block of blocks){
+    const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(!lines.length) continue;
+
+    // Find question line (usually starts with number or is not an option)
+    const optRe=/^[A-Da-d][).]\s+/;
+    const ansRe=/^answer\s*[:=]\s*([A-Da-d])/i;
+
+    let qLine='', opts=[], answerIdx=-1;
+    for(const line of lines){
+      if(ansRe.test(line)){
+        const m=line.match(ansRe);
+        answerIdx='ABCD'.indexOf(m[1].toUpperCase());
+      } else if(optRe.test(line)){
+        opts.push(line.replace(optRe,'').trim());
+      } else if(!qLine){
+        qLine=line.replace(/^\d+[.)]\s*/,'').trim();
+      }
+    }
+
+    if(qLine && opts.length>=2){
+      // pad to 4 options if needed
+      while(opts.length<4) opts.push('—');
+      parsed.push({question:qLine,options:opts.slice(0,4),correct:Math.max(0,answerIdx),time:20});
+    }
+  }
+
+  if(!parsed.length){
+    errEl.textContent='Could not parse any questions. Check the format above.';
+    errEl.style.display='block';
+    return;
+  }
+  startQuiz(parsed,'Pasted Quiz');
+}
+
+// ═══════════════════════════════════════════════════════
+// QUIZ ENGINE
+// ═══════════════════════════════════════════════════════
+function startQuiz(qs, title){
+  questions=[...qs];
+  currentQ=0; score=0; answerHistory=[];
+  document.getElementById('playTitle').textContent=title||'Quiz';
+  document.getElementById('scoreDisplay').textContent='0';
+  showScreen('s-play');
+  showQuestion();
+}
+
+function showQuestion(){
+  if(currentQ>=questions.length){endQuiz();return;}
+  const q=questions[currentQ];
+  const labels=['A','B','C','D'];
+  const colors=['A','B','C','D'];
+
+  document.getElementById('qProgress').textContent=`Question ${currentQ+1} of ${questions.length}`;
+  document.getElementById('qText').textContent=q.question;
+  document.getElementById('feedbackBar').textContent='';
+  document.getElementById('feedbackBar').className='feedback-bar';
+
+  const grid=document.getElementById('answersGrid');
+  grid.innerHTML=q.options.map((o,i)=>`
+    <button class="ans-btn ans-${colors[i]}" onclick="answer(${i})">
+      <span class="ans-letter">${labels[i]}</span>
+      <span>${o}</span>
+    </button>`).join('');
+
+  startTimer(q.time||20);
+}
+
+function startTimer(seconds){
+  clearInterval(timerInterval);
+  const bar=document.getElementById('timerBar');
+  bar.style.transition='none';
+  bar.style.transform='scaleX(1)';
+  let remaining=seconds;
+  // trigger reflow
+  bar.offsetHeight;
+  bar.style.transition=`transform ${seconds}s linear`;
+  bar.style.transform='scaleX(0)';
+
+  timerInterval=setInterval(()=>{
+    remaining--;
+    if(remaining<=0){
+      clearInterval(timerInterval);
+      timeUp();
+    }
+  },1000);
+}
+
+function timeUp(){
+  const q=questions[currentQ];
+  lockButtons();
+  highlightCorrect(q.correct);
+  document.getElementById('feedbackBar').textContent='⏰ Time\'s up!';
+  document.getElementById('feedbackBar').className='feedback-bar wrong-fb';
+  answerHistory.push({question:q.question,chosen:-1,correctIdx:q.correct,options:q.options,wasCorrect:false});
+  setTimeout(nextQuestion,1800);
+}
+
+function answer(idx){
+  clearInterval(timerInterval);
+  const q=questions[currentQ];
+  const correct=idx===q.correct;
+  const btns=document.querySelectorAll('.ans-btn');
+  lockButtons();
+
+  if(correct){
+    btns[idx].classList.add('correct');
+    score++;
+    document.getElementById('scoreDisplay').textContent=score;
+    document.getElementById('feedbackBar').textContent='✓ Correct!';
+    document.getElementById('feedbackBar').className='feedback-bar correct-fb';
+  } else {
+    btns[idx].classList.add('wrong');
+    highlightCorrect(q.correct);
+    document.getElementById('feedbackBar').textContent='✗ Wrong — the correct answer was '+['A','B','C','D'][q.correct];
+    document.getElementById('feedbackBar').className='feedback-bar wrong-fb';
+  }
+
+  answerHistory.push({question:q.question,chosen:idx,correctIdx:q.correct,options:q.options,wasCorrect:correct});
+  setTimeout(nextQuestion,correct?1400:2000);
+}
+
+function lockButtons(){
+  document.querySelectorAll('.ans-btn').forEach(b=>b.disabled=true);
+}
+
+function highlightCorrect(idx){
+  const btns=document.querySelectorAll('.ans-btn');
+  btns[idx]?.classList.add('reveal-correct');
+}
+
+function nextQuestion(){ currentQ++; showQuestion(); }
+
+function endQuiz(){ clearInterval(timerInterval); showResults(); }
+
+// ═══════════════════════════════════════════════════════
+// RESULTS
+// ═══════════════════════════════════════════════════════
+function showResults(){
+  showScreen('s-results');
+  const total=questions.length;
+  const pct=total?Math.round(score/total*100):0;
+
+  document.getElementById('bigScore').textContent=score+'/'+total;
+  let label='Keep practising! 💪';
+  if(pct>=90) label='Outstanding! 🏆';
+  else if(pct>=70) label='Great work! 🎉';
+  else if(pct>=50) label='Good effort! 👍';
+  document.getElementById('scoreLabel').textContent=label+' ('+pct+'%)';
+
+  const list=document.getElementById('resultList');
+  list.innerHTML=answerHistory.map(h=>`
+    <li class="result-item">
+      <span class="result-icon">${h.wasCorrect?'✅':'❌'}</span>
+      <div>
+        <div class="result-q">${h.question}</div>
+        <div class="result-a">${h.wasCorrect?'Correct: '+h.options[h.correctIdx]:'Your answer: '+(h.chosen>=0?h.options[h.chosen]:'—')+' · Correct: '+h.options[h.correctIdx]}</div>
+      </div>
+    </li>`).join('');
+
+  if(pct>=70) launchConfetti();
+}
+
+function retryQuiz(){ startQuiz(questions, document.getElementById('playTitle').textContent); }
+
+function launchConfetti(){
+  const wrap=document.getElementById('confettiWrap');
+  wrap.innerHTML='';
+  const colors=['#ff4757','#2ed573','#1e90ff','#ffa502','#c5a8ff','#ffffff'];
+  for(let i=0;i<80;i++){
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    el.style.cssText=`
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${1.5+Math.random()*2}s;
+      animation-delay:${Math.random()*.8}s;
+      width:${6+Math.random()*8}px;
+      height:${6+Math.random()*8}px;
+      border-radius:${Math.random()>0.5?'50%':'2px'};
+    `;
+    wrap.appendChild(el);
+  }
+  setTimeout(()=>wrap.innerHTML='',4000);
+}
+</script>
+</body>
+</html>
