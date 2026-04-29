@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connections Workflow</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b12;
+    --surface: #0e1420;
+    --surface2: #141c2e;
+    --surface3: #1c2640;
+    --border: rgba(255,255,255,0.07);
+    --border-bright: rgba(255,255,255,0.15);
+    --text: #e8edf8;
+    --text-muted: #6b7a9a;
+    --text-dim: #3a4460;
+    --accent: #4f8aff;
+    --accent-glow: rgba(79,138,255,0.25);
+    --accent2: #a78bfa;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+
+    --rel-friend: #4f8aff;
+    --rel-family: #a78bfa;
+    --rel-enemy: #f87171;
+    --rel-classmate: #34d399;
+    --rel-colleague: #fbbf24;
+    --rel-romantic: #f472b6;
+    --rel-mentor: #fb923c;
+    --rel-other: #94a3b8;
+
+    --node-size: 56px;
+    --sidebar-w: 300px;
+    --toolbar-h: 56px;
+    --radius: 12px;
+    --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── TOOLBAR ── */
+  #toolbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--toolbar-h);
+    background: rgba(8,11,18,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 16px;
+    z-index: 100;
+  }
+
+  .logo {
+    font-size: 18px; font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  .toolbar-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+
+  .btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 12px; border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
+  .btn.active { background: var(--surface3); color: var(--accent); border-color: rgba(79,138,255,0.3); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  .btn.primary:hover { background: #6b9fff; }
+  .btn svg { width: 15px; height: 15px; }
+
+  .btn-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer; transition: var(--transition);
+    font-size: 15px;
+  }
+  .btn-icon:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
+  .btn-icon.active { background: var(--surface3); color: var(--accent); border-color: rgba(79,138,255,0.3); }
+  .btn-icon:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  #search-wrap {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 12px;
+    margin-left: auto;
+    transition: var(--transition);
+  }
+  #search-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  #search-wrap svg { color: var(--text-dim); width: 14px; height: 14px; flex-shrink: 0; }
+  #search-input {
+    background: none; border: none; outline: none;
+    color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 12px; width: 160px; height: 32px;
+  }
+  #search-input::placeholder { color: var(--text-dim); }
+
+  .toolbar-spacer { flex: 1; }
+
+  /* ── CANVAS AREA ── */
+  #canvas-wrap {
+    position: fixed;
+    top: var(--toolbar-h); left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    cursor: default;
+  }
+  #canvas-wrap.mode-add { cursor: crosshair; }
+  #canvas-wrap.mode-connect { cursor: cell; }
+  #canvas-wrap.panning { cursor: grabbing; }
+
+  #graph-container {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform-origin: 0 0;
+  }
+
+  /* SVG for edges */
+  #edges-svg {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; overflow: visible;
+  }
+  #edges-svg .edge-group { pointer-events: all; }
+
+  .edge-bg {
+    stroke-width: 20; fill: none; stroke: transparent; cursor: pointer;
+  }
+  .edge-line {
+    fill: none; stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-width 0.2s, opacity 0.2s;
+    pointer-events: none;
+  }
+  .edge-line.selected { stroke-width: 4; filter: drop-shadow(0 0 6px currentColor); }
+  .edge-line.faded { opacity: 0.15; }
+  .edge-group:hover .edge-line { stroke-width: 4; filter: drop-shadow(0 0 8px currentColor); }
+
+  .edge-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; font-weight: 500;
+    fill: var(--text-muted);
+    pointer-events: none;
+    text-anchor: middle;
+  }
+  .edge-label-bg {
+    fill: var(--surface);
+    rx: 4; ry: 4;
+    pointer-events: none;
+  }
+  .edge-arrow { pointer-events: none; }
+
+  /* Nodes */
+  .node {
+    position: absolute;
+    width: var(--node-size); height: var(--node-size);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    cursor: grab;
+    transform: translate(-50%, -50%);
+    transition: box-shadow 0.2s, transform 0.15s;
+    border: 2.5px solid;
+    font-size: 22px;
+    z-index: 10;
+  }
+  .node:hover { transform: translate(-50%, -50%) scale(1.12); z-index: 20; }
+  .node.dragging { cursor: grabbing; transform: translate(-50%, -50%) scale(1.18); z-index: 50; transition: none; }
+  .node.selected { z-index: 30; }
+  .node.faded { opacity: 0.2; pointer-events: none; }
+  .node.connect-source { animation: pulse-ring 1.2s ease-out infinite; }
+  .node.connect-target:hover { transform: translate(-50%, -50%) scale(1.2); }
+
+  .node-avatar {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .node-emoji {
+    font-size: 24px; line-height: 1;
+    pointer-events: none;
+  }
+  .node-initials {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 18px;
+    color: #fff; line-height: 1;
+    pointer-events: none;
+  }
+
+  .node-label {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%; transform: translateX(-50%);
+    background: rgba(8,11,18,0.85);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px; font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+    letter-spacing: 0.3px;
+  }
+
+  .node-group-badge {
+    position: absolute;
+    bottom: -4px; right: -4px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    color: #fff;
+    pointer-events: none;
+  }
+
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(79,138,255,0.7); }
+    70% { box-shadow: 0 0 0 14px rgba(79,138,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(79,138,255,0); }
+  }
+
+  /* Temp edge while connecting */
+  #temp-edge {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; overflow: visible;
+  }
+  #temp-line {
+    stroke: var(--accent); stroke-width: 2; fill: none;
+    stroke-dasharray: 8 4;
+    animation: dash-anim 0.6s linear infinite;
+  }
+  @keyframes dash-anim { to { stroke-dashoffset: -36; } }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    position: fixed;
+    top: var(--toolbar-h); right: 0;
+    width: var(--sidebar-w);
+    height: calc(100vh - var(--toolbar-h));
+    background: rgba(10,14,22,0.96);
+    backdrop-filter: blur(24px);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    z-index: 90;
+    overflow: hidden;
+  }
+  #sidebar.open { transform: translateX(0); }
+
+  .sidebar-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .sidebar-title {
+    font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted);
+  }
+
+  .sidebar-body {
+    flex: 1; overflow-y: auto; padding: 20px;
+    scrollbar-width: thin; scrollbar-color: var(--surface3) transparent;
+  }
+  .sidebar-body::-webkit-scrollbar { width: 4px; }
+  .sidebar-body::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-body::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted); margin-bottom: 6px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    transition: var(--transition);
+    resize: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .form-select option { background: var(--surface2); }
+  .form-textarea { height: 80px; }
+
+  .emoji-picker-row {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+  }
+  .emoji-opt {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    transition: var(--transition);
+  }
+  .emoji-opt:hover { background: var(--surface3); border-color: var(--border-bright); transform: scale(1.1); }
+  .emoji-opt.selected { border-color: var(--accent); background: var(--accent-glow); }
+
+  .color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .color-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    cursor: pointer; border: 2.5px solid transparent;
+    transition: var(--transition);
+    position: relative;
+  }
+  .color-dot:hover { transform: scale(1.2); }
+  .color-dot.selected { border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,0.2); }
+
+  .rel-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .rel-chip {
+    padding: 5px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    border: 1.5px solid; opacity: 0.6;
+    transition: var(--transition);
+    letter-spacing: 0.3px;
+  }
+  .rel-chip:hover, .rel-chip.selected { opacity: 1; }
+
+  .sidebar-actions {
+    display: flex; gap: 8px; margin-top: 20px;
+    padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .sidebar-actions .btn { flex: 1; justify-content: center; font-size: 12px; padding: 9px; }
+
+  /* ── MINI MAP ── */
+  #minimap {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    width: 160px; height: 100px;
+    background: rgba(10,14,22,0.9);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 80;
+    backdrop-filter: blur(8px);
+  }
+  #minimap-canvas { width: 100%; height: 100%; }
+  .minimap-label {
+    position: absolute; top: 6px; left: 8px;
+    font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    color: var(--text-dim); text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* ── ZOOM CONTROLS ── */
+  #zoom-controls {
+    position: fixed; bottom: 20px; left: 20px;
+    display: flex; flex-direction: column; gap: 4px;
+    z-index: 80;
+  }
+
+  /* ── TOAST ── */
+  #toast-container {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 8px;
+    align-items: center; z-index: 1000;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 13px; font-weight: 500;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: toast-in 0.3s ease, toast-out 0.3s ease 2.2s forwards;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.success { border-color: rgba(52,211,153,0.4); color: var(--success); }
+  .toast.error { border-color: rgba(248,113,113,0.4); color: var(--danger); }
+  @keyframes toast-in { from { opacity:0; transform:translateY(12px) scale(0.95); } to { opacity:1; transform:none; } }
+  @keyframes toast-out { to { opacity:0; transform:translateY(-8px) scale(0.95); } }
+
+  /* ── MODAL ── */
+  #modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none; align-items: center; justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 16px;
+    padding: 28px;
+    width: 400px; max-width: 90vw;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    animation: modal-in 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes modal-in { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:none; } }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  /* ── CONTEXT MENU ── */
+  #ctx-menu {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 160px;
+    z-index: 300;
+    display: none;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    animation: ctx-in 0.15s ease;
+  }
+  #ctx-menu.open { display: block; }
+  @keyframes ctx-in { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:none; } }
+  .ctx-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 6px;
+    font-size: 13px; cursor: pointer;
+    color: var(--text-muted);
+    transition: var(--transition);
+  }
+  .ctx-item:hover { background: var(--surface3); color: var(--text); }
+  .ctx-item.danger:hover { background: rgba(248,113,113,0.1); color: var(--danger); }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* ── GROUPS LEGEND ── */
+  #groups-panel {
+    position: fixed; top: calc(var(--toolbar-h) + 16px); left: 16px;
+    background: rgba(10,14,22,0.85);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    z-index: 80;
+    backdrop-filter: blur(12px);
+    min-width: 140px;
+    display: none;
+  }
+  #groups-panel.open { display: block; }
+  .groups-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+  }
+  .group-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 0; cursor: pointer;
+    font-size: 12px; color: var(--text-muted);
+    transition: var(--transition);
+  }
+  .group-item:hover { color: var(--text); }
+  .group-item.active { color: var(--text); }
+  .group-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── SELECTION BOX ── */
+  #selection-box {
+    position: absolute;
+    border: 1.5px dashed var(--accent);
+    background: rgba(79,138,255,0.07);
+    border-radius: 4px;
+    pointer-events: none;
+    display: none;
+  }
+
+  /* Info bar */
+  #info-bar {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,14,22,0.9);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 14px;
+    font-size: 11px; color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+    z-index: 70; pointer-events: none;
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
+  }
+
+  /* Scrollbar for main */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <span class="logo">⬡ Connections</span>
+  <div class="toolbar-sep"></div>
+
+  <button class="btn" id="btn-add-node" title="Add Person (A)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0112 0v2"/><line x1="20" y1="13" x2="20" y2="19"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+    Add Person
+  </button>
+
+  <button class="btn" id="btn-connect" title="Connect Nodes (C)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+    Connect
+  </button>
+
+  <div class="toolbar-sep"></div>
+
+  <button class="btn-icon" id="btn-undo" title="Undo (Ctrl+Z)" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 103.93-9.43L1 10"/></svg>
+  </button>
+  <button class="btn-icon" id="btn-redo" title="Redo (Ctrl+Y)" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 113.93-9.43L23 10"/></svg>
+  </button>
+
+  <div class="toolbar-sep"></div>
+
+  <button class="btn" id="btn-groups" title="Toggle Groups">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="17" cy="7" r="3"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+    Groups
+  </button>
+
+  <div class="toolbar-spacer"></div>
+
+  <div id="search-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="search-input" placeholder="Search people...">
+  </div>
+
+  <div class="toolbar-sep"></div>
+
+  <button class="btn-icon" id="btn-save" title="Save (Ctrl+S)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+  </button>
+  <button class="btn-icon" id="btn-export-json" title="Export JSON">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+  </button>
+  <button class="btn-icon" id="btn-export-img" title="Export as Image">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+  </button>
+  <button class="btn-icon" id="btn-clear" title="Clear All">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+  </button>
+</div>
+
+<!-- CANVAS -->
+<div id="canvas-wrap">
+  <div id="graph-container">
+    <svg id="edges-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs id="svg-defs"></defs>
+      <g id="edges-layer"></g>
+    </svg>
+    <svg id="temp-edge" xmlns="http://www.w3.org/2000/svg">
+      <path id="temp-line" d="" style="display:none"/>
+    </svg>
+    <div id="nodes-layer"></div>
+    <div id="selection-box"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-title" id="sidebar-title">Edit Node</span>
+    <button class="btn-icon" id="sidebar-close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="sidebar-body" id="sidebar-body">
+    <!-- filled dynamically -->
+  </div>
+</div>
+
+<!-- MINIMAP -->
+<div id="minimap">
+  <canvas id="minimap-canvas"></canvas>
+  <div class="minimap-label">MAP</div>
+</div>
+
+<!-- ZOOM CONTROLS -->
+<div id="zoom-controls">
+  <button class="btn-icon" id="btn-zoom-in" title="Zoom In (+)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+  </button>
+  <button class="btn-icon" id="btn-zoom-out" title="Zoom Out (-)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+  </button>
+  <button class="btn-icon" id="btn-zoom-fit" title="Fit to Screen (F)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+  </button>
+</div>
+
+<!-- GROUPS PANEL -->
+<div id="groups-panel">
+  <div class="groups-title">Groups</div>
+  <div id="groups-list"></div>
+  <div style="height:8px"></div>
+  <button class="btn" style="width:100%;justify-content:center;font-size:11px;" id="btn-add-group">+ New Group</button>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- INFO BAR -->
+<div id="info-bar">0 nodes · 0 connections</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" data-action="edit">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Edit
+  </div>
+  <div class="ctx-item" data-action="duplicate">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+    Duplicate
+  </div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" data-action="delete">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+    Delete
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// NEXUS — Relationship Map Engine
+// ══════════════════════════════════════════════════════════════
+
+const EMOJIS = ['👤','👩','👨','👧','👦','🧑','👴','👵','🧔','👩‍💼','👨‍💼','🧑‍🎓','👩‍🎓','👨‍🎓','🧑‍🔬','👩‍🍳','👨‍🎨','🦸','🧙','🧝','🎭','🐱','🦊','🐺','🤖','👾','🎃','💀','⭐','🌟'];
+
+const REL_TYPES = {
+  friend:    { label:'Friend',    color:'#4f8aff' },
+  family:    { label:'Family',    color:'#a78bfa' },
+  enemy:     { label:'Enemy',     color:'#f87171' },
+  classmate: { label:'Classmate', color:'#34d399' },
+  colleague: { label:'Colleague', color:'#fbbf24' },
+  romantic:  { label:'Romantic',  color:'#f472b6' },
+  mentor:    { label:'Mentor',    color:'#fb923c' },
+  other:     { label:'Other',     color:'#94a3b8' },
+};
+
+const NODE_COLORS = ['#4f8aff','#a78bfa','#f87171','#34d399','#fbbf24','#f472b6','#fb923c','#06b6d4','#84cc16','#ec4899'];
+
+const GROUP_COLORS = ['#4f8aff','#a78bfa','#34d399','#fbbf24','#f87171','#fb923c','#06b6d4'];
+const DEFAULT_GROUPS = [
+  { id:'g1', name:'Family',   color:'#a78bfa' },
+  { id:'g2', name:'Work',     color:'#fbbf24' },
+  { id:'g3', name:'School',   color:'#34d399' },
+  { id:'g4', name:'Friends',  color:'#4f8aff' },
+];
+
+// ── State ──────────────────────────────────────────────────────
+let state = {
+  nodes: [],
+  edges: [],
+  groups: [...DEFAULT_GROUPS],
+  nextNodeId: 1,
+  nextEdgeId: 1,
+  nextGroupId: 10,
+};
+
+let view = { x: 0, y: 0, scale: 1 };
+let mode = 'select'; // select | add | connect
+let selectedNode = null;
+let selectedEdge = null;
+let connectSource = null;
+let dragging = null;
+let dragStart = { mx:0, my:0, nx:0, ny:0 };
+let panning = false;
+let panStart = { mx:0, my:0, vx:0, vy:0 };
+let history = []; // undo stack
+let redoStack = [];
+let searchQuery = '';
+let activeGroup = null;
+let ctxTarget = null;
+
+// ── DOM refs ───────────────────────────────────────────────────
+const canvasWrap  = document.getElementById('canvas-wrap');
+const graphCont   = document.getElementById('graph-container');
+const edgesSvg    = document.getElementById('edges-svg');
+const edgesLayer  = document.getElementById('edges-layer');
+const nodesLayer  = document.getElementById('nodes-layer');
+const tempEdge    = document.getElementById('temp-edge');
+const tempLine    = document.getElementById('temp-line');
+const sidebar     = document.getElementById('sidebar');
+const sidebarBody = document.getElementById('sidebar-body');
+const sidebarTitle= document.getElementById('sidebar-title');
+const infoBar     = document.getElementById('info-bar');
+const ctxMenu     = document.getElementById('ctx-menu');
+const modalOverlay= document.getElementById('modal-overlay');
+const modalContent= document.getElementById('modal-content');
+const miniCanvas  = document.getElementById('minimap-canvas');
+const miniCtx     = miniCanvas.getContext('2d');
+const groupsPanel = document.getElementById('groups-panel');
+const groupsList  = document.getElementById('groups-list');
+const selBox      = document.getElementById('selection-box');
+
+// ── Utility ────────────────────────────────────────────────────
+function uid(prefix='n') { return prefix + Date.now() + Math.random().toString(36).slice(2,6); }
+
+function getNodeColor(node) {
+  return node.color || NODE_COLORS[0];
+}
+
+function initials(name) {
+  return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?';
+}
+
+function screenToGraph(sx, sy) {
+  return {
+    x: (sx - view.x) / view.scale,
+    y: (sy - view.y) / view.scale,
+  };
+}
+
+function graphToScreen(gx, gy) {
+  return {
+    x: gx * view.scale + view.x,
+    y: gy * view.scale + view.y,
+  };
+}
+
+function applyTransform() {
+  graphCont.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.scale})`;
+}
+
+function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
+
+function toast(msg, type='') {
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' '+type : '');
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 2700);
+}
+
+function showToast(msg, type) { toast(msg, type); }
+
+// ── History ────────────────────────────────────────────────────
+function pushHistory() {
+  history.push(JSON.stringify({ nodes: state.nodes, edges: state.edges, groups: state.groups }));
+  if (history.length > 80) history.shift();
+  redoStack = [];
+  updateUndoButtons();
+}
+
+function undo() {
+  if (!history.length) return;
+  redoStack.push(JSON.stringify({ nodes: state.nodes, edges: state.edges, groups: state.groups }));
+  const snap = JSON.parse(history.pop());
+  state.nodes = snap.nodes; state.edges = snap.edges; state.groups = snap.groups;
+  state.nextNodeId = Math.max(...state.nodes.map(n=>parseInt(n.id.replace(/\D/g,''))||0), state.nextNodeId);
+  render(); updateUndoButtons(); updateInfoBar();
+}
+
+function redo() {
+  if (!redoStack.length) return;
+  history.push(JSON.stringify({ nodes: state.nodes, edges: state.edges, groups: state.groups }));
+  const snap = JSON.parse(redoStack.pop());
+  state.nodes = snap.nodes; state.edges = snap.edges; state.groups = snap.groups;
+  render(); updateUndoButtons(); updateInfoBar();
+}
+
+function updateUndoButtons() {
+  document.getElementById('btn-undo').disabled = history.length === 0;
+  document.getElementById('btn-redo').disabled = redoStack.length === 0;
+}
+
+// ── Rendering ─────────────────────────────────────────────────
+
+function render() {
+  renderEdges();
+  renderNodes();
+  renderGroups();
+  updateMinimap();
+}
+
+function renderNodes() {
+  // Remove stale nodes
+  const existingIds = new Set(Array.from(nodesLayer.children).map(el=>el.dataset.id));
+  const stateIds = new Set(state.nodes.map(n=>n.id));
+  existingIds.forEach(id => { if(!stateIds.has(id)) document.getElementById('nd-'+id)?.remove(); });
+
+  state.nodes.forEach(node => {
+    let el = document.getElementById('nd-' + node.id);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'node';
+      el.id = 'nd-' + node.id;
+      el.dataset.id = node.id;
+      nodesLayer.appendChild(el);
+      el.addEventListener('mousedown', onNodeMouseDown);
+      el.addEventListener('contextmenu', onNodeCtxMenu);
+      el.addEventListener('click', onNodeClick);
+    }
+    const col = getNodeColor(node);
+    const isSelected = selectedNode === node.id;
+    const isFaded = (searchQuery && !node.name.toLowerCase().includes(searchQuery)) ||
+                    (activeGroup && node.groupId !== activeGroup);
+
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
+    el.style.borderColor = col;
+    el.style.background = hexToRgba(col, 0.12);
+    el.style.boxShadow = isSelected
+      ? `0 0 0 3px ${col}, 0 0 20px ${hexToRgba(col, 0.5)}`
+      : `0 0 12px ${hexToRgba(col, 0.3)}`;
+
+    el.classList.toggle('selected', isSelected);
+    el.classList.toggle('faded', isFaded);
+    el.classList.toggle('connect-source', connectSource === node.id);
+
+    // Content
+    let inner = '';
+    if (node.emoji) {
+      inner = `<span class="node-emoji">${node.emoji}</span>`;
+    } else {
+      inner = `<span class="node-initials" style="color:${col}">${initials(node.name)}</span>`;
+    }
+    inner += `<span class="node-label">${escHtml(node.name)}</span>`;
+
+    // Group badge
+    if (node.groupId) {
+      const grp = state.groups.find(g=>g.id===node.groupId);
+      if (grp) inner += `<span class="node-group-badge" style="background:${grp.color}">${grp.name[0]}</span>`;
+    }
+
+    el.innerHTML = inner;
+  });
+}
+
+function renderEdges() {
+  // Build set of current edge IDs in DOM
+  const existingGroups = new Set(Array.from(edgesLayer.children).map(el=>el.dataset.id));
+  const stateEdgeIds = new Set(state.edges.map(e=>e.id));
+  existingGroups.forEach(id => { if(!stateEdgeIds.has(id)) document.querySelector(`[data-id="${id}"]`)?.remove(); });
+
+  state.edges.forEach(edge => {
+    const src = state.nodes.find(n=>n.id===edge.source);
+    const tgt = state.nodes.find(n=>n.id===edge.target);
+    if (!src || !tgt) return;
+
+    const rel = REL_TYPES[edge.type] || REL_TYPES.other;
+    const col = rel.color;
+    const isSelected = selectedEdge === edge.id;
+    const isFaded = (searchQuery && !src.name.toLowerCase().includes(searchQuery) && !tgt.name.toLowerCase().includes(searchQuery)) ||
+                    (activeGroup && src.groupId !== activeGroup && tgt.groupId !== activeGroup);
+
+    let grp = document.querySelector(`g[data-id="${edge.id}"]`);
+    if (!grp) {
+      grp = document.createElementNS('http://www.w3.org/2000/svg','g');
+      grp.dataset.id = edge.id;
+      grp.classList.add('edge-group');
+      grp.addEventListener('click', (e) => { e.stopPropagation(); selectEdge(edge.id); });
+      grp.addEventListener('contextmenu', (e) => { e.preventDefault(); e.stopPropagation(); ctxTarget={type:'edge',id:edge.id}; showCtxMenu(e.clientX,e.clientY,false); });
+
+      const bg  = document.createElementNS('http://www.w3.org/2000/svg','path');
+      bg.classList.add('edge-bg'); bg.dataset.role='bg'; grp.appendChild(bg);
+      const line= document.createElementNS('http://www.w3.org/2000/svg','path');
+      line.classList.add('edge-line'); line.dataset.role='line'; grp.appendChild(line);
+      const lbg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      lbg.classList.add('edge-label-bg'); lbg.dataset.role='lbg'; grp.appendChild(lbg);
+      const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      lbl.classList.add('edge-label'); lbl.dataset.role='lbl'; grp.appendChild(lbl);
+
+      edgesLayer.appendChild(grp);
+    }
+
+    // Compute path (curved)
+    const dx = tgt.x - src.x, dy = tgt.y - src.y;
+    const dist = Math.sqrt(dx*dx+dy*dy) || 1;
+    const r = 28; // node radius
+    const off = r / dist;
+    const x1 = src.x + dx*off, y1 = src.y + dy*off;
+    const x2 = tgt.x - dx*off, y2 = tgt.y - dy*off;
+
+    // Slight curve
+    const cx = (x1+x2)/2 - dy*0.15, cy = (y1+y2)/2 + dx*0.15;
+    const d = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+
+    grp.querySelector('[data-role=bg]').setAttribute('d', d);
+    const lineEl = grp.querySelector('[data-role=line]');
+    lineEl.setAttribute('d', d);
+    lineEl.style.stroke = col;
+    lineEl.classList.toggle('selected', isSelected);
+    lineEl.classList.toggle('faded', isFaded);
+
+    // Label
+    const mx = (x1+x2)/2*0.4 + cx*0.6, my = (y1+y2)/2*0.4 + cy*0.6;
+    const lblEl = grp.querySelector('[data-role=lbl]');
+    lblEl.textContent = edge.label || rel.label;
+    lblEl.setAttribute('x', mx); lblEl.setAttribute('y', my - 6);
+    lblEl.style.fill = isFaded ? 'transparent' : col;
+
+    const tw = (lblEl.textContent.length * 7);
+    const lbgEl = grp.querySelector('[data-role=lbg]');
+    lbgEl.setAttribute('x', mx - tw/2 - 4);
+    lbgEl.setAttribute('y', my - 18);
+    lbgEl.setAttribute('width', tw + 8);
+    lbgEl.setAttribute('height', 16);
+    lbgEl.setAttribute('rx', 4);
+    lbgEl.style.fill = isFaded ? 'transparent' : 'var(--surface)';
+  });
+}
+
+function renderGroups() {
+  groupsList.innerHTML = '';
+  const all = document.createElement('div');
+  all.className = 'group-item' + (activeGroup===null?' active':'');
+  all.innerHTML = `<span class="group-dot" style="background:#555"></span>All`;
+  all.addEventListener('click', ()=>{ activeGroup=null; renderNodes(); renderEdges(); renderGroupsPanel(); });
+  groupsList.appendChild(all);
+
+  state.groups.forEach(g => {
+    const item = document.createElement('div');
+    item.className = 'group-item' + (activeGroup===g.id?' active':'');
+    item.innerHTML = `<span class="group-dot" style="background:${g.color}"></span>${escHtml(g.name)}`;
+    item.addEventListener('click', ()=>{ activeGroup = activeGroup===g.id?null:g.id; renderNodes(); renderEdges(); renderGroupsPanel(); });
+    groupsList.appendChild(item);
+  });
+}
+
+function renderGroupsPanel() {
+  renderGroups();
+}
+
+// ── Minimap ────────────────────────────────────────────────────
+function updateMinimap() {
+  const W = miniCanvas.offsetWidth, H = miniCanvas.offsetHeight;
+  miniCanvas.width = W*2; miniCanvas.height = H*2;
+  miniCtx.scale(2,2);
+  miniCtx.clearRect(0,0,W,H);
+
+  if (!state.nodes.length) return;
+
+  const xs = state.nodes.map(n=>n.x), ys = state.nodes.map(n=>n.y);
+  const minX=Math.min(...xs)-40, maxX=Math.max(...xs)+40;
+  const minY=Math.min(...ys)-40, maxY=Math.max(...ys)+40;
+  const gw=maxX-minX||1, gh=maxY-minY||1;
+  const scale=Math.min((W-8)/gw,(H-16)/gh);
+  const ox=(W-(gw*scale))/2-minX*scale, oy=(H-(gh*scale))/2+8-minY*scale;
+
+  // Edges
+  state.edges.forEach(e => {
+    const s=state.nodes.find(n=>n.id===e.source), t=state.nodes.find(n=>n.id===e.target);
+    if(!s||!t) return;
+    const rel = REL_TYPES[e.type]||REL_TYPES.other;
+    miniCtx.strokeStyle = rel.color+'88';
+    miniCtx.lineWidth = 1;
+    miniCtx.beginPath();
+    miniCtx.moveTo(s.x*scale+ox, s.y*scale+oy);
+    miniCtx.lineTo(t.x*scale+ox, t.y*scale+oy);
+    miniCtx.stroke();
+  });
+
+  // Nodes
+  state.nodes.forEach(n => {
+    miniCtx.fillStyle = getNodeColor(n);
+    miniCtx.beginPath();
+    miniCtx.arc(n.x*scale+ox, n.y*scale+oy, 4, 0, Math.PI*2);
+    miniCtx.fill();
+  });
+
+  // Viewport indicator
+  const vw = canvasWrap.offsetWidth / view.scale;
+  const vh = (canvasWrap.offsetHeight) / view.scale;
+  const vx = -view.x / view.scale, vy = -view.y / view.scale;
+  miniCtx.strokeStyle = 'rgba(79,138,255,0.5)';
+  miniCtx.lineWidth = 1;
+  miniCtx.strokeRect(vx*scale+ox, vy*scale+oy, vw*scale, vh*scale);
+}
+
+// ── Node Operations ────────────────────────────────────────────
+function addNode(x, y, data={}) {
+  pushHistory();
+  const node = {
+    id: uid('n'),
+    name: data.name || 'New Person',
+    emoji: data.emoji || '',
+    color: data.color || NODE_COLORS[state.nodes.length % NODE_COLORS.length],
+    notes: data.notes || '',
+    groupId: data.groupId || null,
+    x, y,
+  };
+  state.nodes.push(node);
+  renderNodes();
+  updateInfoBar();
+  saveLocal();
+  return node;
+}
+
+function deleteNode(id) {
+  pushHistory();
+  state.nodes = state.nodes.filter(n=>n.id!==id);
+  state.edges = state.edges.filter(e=>e.source!==id&&e.target!==id);
+  document.getElementById('nd-'+id)?.remove();
+  // Remove stale edge DOMs
+  state.edges.forEach(e => {
+    const exists = document.querySelector(`g[data-id="${e.id}"]`);
+  });
+  renderEdges();
+  if (selectedNode===id) { selectedNode=null; closeSidebar(); }
+  updateInfoBar(); saveLocal();
+  toast('Person removed', 'success');
+}
+
+function duplicateNode(id) {
+  const node = state.nodes.find(n=>n.id===id);
+  if (!node) return;
+  addNode(node.x+60, node.y+60, { ...node });
+  toast('Duplicated');
+}
+
+function addEdge(srcId, tgtId, type='friend', label='') {
+  if (srcId===tgtId) return;
+  const exists = state.edges.find(e=>(e.source===srcId&&e.target===tgtId)||(e.source===tgtId&&e.target===srcId));
+  if (exists) { toast('Connection already exists','error'); return; }
+  pushHistory();
+  const edge = { id:uid('e'), source:srcId, target:tgtId, type, label };
+  state.edges.push(edge);
+  renderEdges();
+  updateInfoBar(); saveLocal();
+  return edge;
+}
+
+function deleteEdge(id) {
+  pushHistory();
+  state.edges = state.edges.filter(e=>e.id!==id);
+  document.querySelector(`g[data-id="${id}"]`)?.remove();
+  if (selectedEdge===id) { selectedEdge=null; closeSidebar(); }
+  updateInfoBar(); saveLocal();
+  toast('Connection removed','success');
+}
+
+// ── Selection ──────────────────────────────────────────────────
+function selectNode(id) {
+  selectedNode=id; selectedEdge=null;
+  renderNodes(); renderEdges();
+  openNodeSidebar(id);
+}
+
+function selectEdge(id) {
+  selectedEdge=id; selectedNode=null;
+  renderNodes(); renderEdges();
+  openEdgeSidebar(id);
+}
+
+function clearSelection() {
+  selectedNode=null; selectedEdge=null;
+  renderNodes(); renderEdges();
+  closeSidebar();
+}
+
+// ── Sidebar ────────────────────────────────────────────────────
+function openNodeSidebar(id) {
+  const node = state.nodes.find(n=>n.id===id);
+  if (!node) return;
+  sidebarTitle.textContent = 'Edit Person';
+  sidebar.classList.add('open');
+
+  sidebarBody.innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="sf-name" value="${escHtml(node.name)}" placeholder="Full name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon / Emoji</label>
+      <div class="emoji-picker-row" id="sf-emoji-row">
+        ${EMOJIS.map(e=>`<div class="emoji-opt${node.emoji===e?' selected':''}" data-emoji="${e}">${e}</div>`).join('')}
+        <div class="emoji-opt${!node.emoji?' selected':''}" data-emoji="" title="None">✖</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Color</label>
+      <div class="color-row">${NODE_COLORS.map(c=>`<div class="color-dot${node.color===c?' selected':''}" data-color="${c}" style="background:${c}"></div>`).join('')}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Group</label>
+      <select class="form-select" id="sf-group">
+        <option value="">— No Group —</option>
+        ${state.groups.map(g=>`<option value="${g.id}"${node.groupId===g.id?' selected':''}>${escHtml(g.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-textarea" id="sf-notes" placeholder="Any notes...">${escHtml(node.notes||'')}</textarea>
+    </div>
+    <div class="sidebar-actions">
+      <button class="btn primary" id="sf-save">Save</button>
+      <button class="btn" style="color:var(--danger);border-color:rgba(248,113,113,0.3)" id="sf-delete">Delete</button>
+    </div>
+  `;
+
+  sidebarBody.querySelectorAll('.emoji-opt').forEach(opt => {
+    opt.addEventListener('click', ()=>{
+      sidebarBody.querySelectorAll('.emoji-opt').forEach(o=>o.classList.remove('selected'));
+      opt.classList.add('selected');
+    });
+  });
+  sidebarBody.querySelectorAll('.color-dot').forEach(dot => {
+    dot.addEventListener('click', ()=>{
+      sidebarBody.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('selected'));
+      dot.classList.add('selected');
+    });
+  });
+
+  document.getElementById('sf-save').addEventListener('click', ()=>{
+    const selectedEmoji = sidebarBody.querySelector('.emoji-opt.selected')?.dataset.emoji || '';
+    const selectedColor = sidebarBody.querySelector('.color-dot.selected')?.dataset.color || node.color;
+    pushHistory();
+    node.name  = document.getElementById('sf-name').value.trim() || 'Person';
+    node.emoji = selectedEmoji;
+    node.color = selectedColor;
+    node.groupId = document.getElementById('sf-group').value || null;
+    node.notes = document.getElementById('sf-notes').value;
+    render(); saveLocal(); toast('Saved','success');
+  });
+  document.getElementById('sf-delete').addEventListener('click', ()=>{ deleteNode(id); });
+}
+
+function openEdgeSidebar(id) {
+  const edge = state.edges.find(e=>e.id===id);
+  if (!edge) return;
+  const src = state.nodes.find(n=>n.id===edge.source);
+  const tgt = state.nodes.find(n=>n.id===edge.target);
+  sidebarTitle.textContent = 'Edit Connection';
+  sidebar.classList.add('open');
+
+  sidebarBody.innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;background:var(--surface2);border-radius:8px;padding:10px 12px;">
+      <span style="color:var(--text)">${escHtml(src?.name||'?')}</span>
+      <span style="margin:0 8px;color:var(--text-dim)">→</span>
+      <span style="color:var(--text)">${escHtml(tgt?.name||'?')}</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Relationship Type</label>
+      <div class="rel-chips">
+        ${Object.entries(REL_TYPES).map(([k,v])=>`<div class="rel-chip${edge.type===k?' selected':''}" data-type="${k}" style="color:${v.color};border-color:${v.color}">${v.label}</div>`).join('')}
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label class="form-label">Custom Label</label>
+      <input class="form-input" id="sf-elabel" value="${escHtml(edge.label||'')}" placeholder="e.g. Best Friends">
+    </div>
+    <div class="sidebar-actions">
+      <button class="btn primary" id="sf-esave">Save</button>
+      <button class="btn" style="color:var(--danger);border-color:rgba(248,113,113,0.3)" id="sf-edelete">Delete</button>
+    </div>
+  `;
+
+  sidebarBody.querySelectorAll('.rel-chip').forEach(chip => {
+    chip.addEventListener('click', ()=>{
+      sidebarBody.querySelectorAll('.rel-chip').forEach(c=>c.classList.remove('selected'));
+      chip.classList.add('selected');
+    });
+  });
+  document.getElementById('sf-esave').addEventListener('click', ()=>{
+    pushHistory();
+    edge.type = sidebarBody.querySelector('.rel-chip.selected')?.dataset.type || 'other';
+    edge.label = document.getElementById('sf-elabel').value.trim();
+    renderEdges(); saveLocal(); toast('Saved','success');
+  });
+  document.getElementById('sf-edelete').addEventListener('click', ()=>{ deleteEdge(id); });
+}
+
+function closeSidebar() {
+  sidebar.classList.remove('open');
+}
+
+// ── Context Menu ───────────────────────────────────────────────
+function showCtxMenu(cx, cy, isNode=true) {
+  ctxMenu.style.left = cx+'px'; ctxMenu.style.top = cy+'px';
+  ctxMenu.classList.add('open');
+  // Show/hide duplicate only for nodes
+  ctxMenu.querySelector('[data-action=duplicate]').style.display = isNode ? '' : 'none';
+}
+
+document.addEventListener('click', ()=>{ ctxMenu.classList.remove('open'); });
+
+ctxMenu.querySelectorAll('.ctx-item').forEach(item => {
+  item.addEventListener('click', ()=>{
+    if (!ctxTarget) return;
+    if (ctxTarget.type==='node') {
+      if (item.dataset.action==='edit') selectNode(ctxTarget.id);
+      if (item.dataset.action==='duplicate') duplicateNode(ctxTarget.id);
+      if (item.dataset.action==='delete') deleteNode(ctxTarget.id);
+    } else if (ctxTarget.type==='edge') {
+      if (item.dataset.action==='edit') selectEdge(ctxTarget.id);
+      if (item.dataset.action==='delete') deleteEdge(ctxTarget.id);
+    }
+    ctxTarget=null;
+  });
+});
+
+// ── Mouse/Touch Events ─────────────────────────────────────────
+function onNodeMouseDown(e) {
+  if (e.button !== 0) return;
+  e.stopPropagation();
+  const id = e.currentTarget.dataset.id;
+
+  if (mode==='connect') {
+    if (!connectSource) {
+      connectSource = id;
+      document.getElementById('nd-'+id).classList.add('connect-source');
+      tempLine.style.display = 'block';
+      renderNodes();
+    } else {
+      // Complete connection
+      const edge = addEdge(connectSource, id);
+      if (edge) { selectEdge(edge.id); }
+      connectSource=null;
+      tempLine.style.display='none';
+      renderNodes();
+    }
+    return;
+  }
+
+  // Drag start
+  dragging = id;
+  const node = state.nodes.find(n=>n.id===id);
+  dragStart = { mx: e.clientX, my: e.clientY, nx: node.x, ny: node.y };
+  e.currentTarget.classList.add('dragging');
+  selectNode(id);
+}
+
+function onNodeClick(e) {
+  if (mode==='select') {
+    // handled by mousedown+up
+  }
+}
+
+function onNodeCtxMenu(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const id = e.currentTarget.dataset.id;
+  ctxTarget = { type:'node', id };
+  showCtxMenu(e.clientX, e.clientY, true);
+}
+
+canvasWrap.addEventListener('mousedown', (e) => {
+  if (e.target !== canvasWrap && e.target !== graphCont &&
+      e.target !== edgesSvg && e.target !== edgesLayer &&
+      !e.target.classList.contains('edge-bg')) return;
+
+  if (mode==='add') {
+    const pos = screenToGraph(e.clientX, e.clientY - document.getElementById('toolbar').offsetHeight);
+    const node = addNode(pos.x, pos.y);
+    selectNode(node.id);
+    return;
+  }
+
+  if (mode==='connect') {
+    // click on blank — cancel
+    connectSource=null;
+    tempLine.style.display='none';
+    renderNodes();
+    return;
+  }
+
+  // Pan start
+  if (e.button===1 || (e.button===0 && e.altKey)) {
+    panning = true;
+    panStart = { mx:e.clientX, my:e.clientY, vx:view.x, vy:view.y };
+    canvasWrap.classList.add('panning');
+    e.preventDefault();
+    return;
+  }
+
+  if (e.button===0) {
+    panning = true;
+    panStart = { mx:e.clientX, my:e.clientY, vx:view.x, vy:view.y };
+    canvasWrap.classList.add('panning');
+    clearSelection();
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (dragging) {
+    const node = state.nodes.find(n=>n.id===dragging);
+    if (!node) return;
+    const dx = (e.clientX - dragStart.mx) / view.scale;
+    const dy = (e.clientY - dragStart.my) / view.scale;
+    node.x = dragStart.nx + dx;
+    node.y = dragStart.ny + dy;
+    const el = document.getElementById('nd-'+dragging);
+    if (el) { el.style.left=node.x+'px'; el.style.top=node.y+'px'; }
+    renderEdges();
+    updateMinimap();
+    return;
+  }
+
+  if (panning) {
+    view.x = panStart.vx + (e.clientX - panStart.mx);
+    view.y = panStart.vy + (e.clientY - panStart.my);
+    applyTransform();
+    updateMinimap();
+    return;
+  }
+
+  if (connectSource && mode==='connect') {
+    const rect = canvasWrap.getBoundingClientRect();
+    const src = state.nodes.find(n=>n.id===connectSource);
+    if (!src) return;
+    const sx = src.x * view.scale + view.x + rect.left;
+    const sy = src.y * view.scale + view.y + rect.top + document.getElementById('toolbar').offsetHeight;
+    const tx = e.clientX - rect.left;
+    const ty = e.clientY - rect.top;
+    const gsx = src.x, gsy = src.y;
+    const gtx = (tx - view.x) / view.scale, gty = (ty - view.y) / view.scale;
+    tempLine.setAttribute('d', `M ${gsx} ${gsy} L ${gtx} ${gty}`);
+  }
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (dragging) {
+    const el = document.getElementById('nd-'+dragging);
+    if (el) el.classList.remove('dragging');
+    dragging = null;
+    saveLocal();
+  }
+  if (panning) {
+    panning = false;
+    canvasWrap.classList.remove('panning');
+  }
+});
+
+// Zoom
+canvasWrap.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  const rect = canvasWrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  view.x = mx - (mx - view.x) * factor;
+  view.y = my - (my - view.y) * factor;
+  view.scale = clamp(view.scale * factor, 0.1, 4);
+  applyTransform();
+  updateMinimap();
+}, { passive: false });
+
+function zoomTo(factor, cx, cy) {
+  cx = cx ?? canvasWrap.offsetWidth/2;
+  cy = cy ?? canvasWrap.offsetHeight/2;
+  view.x = cx - (cx - view.x) * factor;
+  view.y = cy - (cy - view.y) * factor;
+  view.scale = clamp(view.scale * factor, 0.1, 4);
+  applyTransform(); updateMinimap();
+}
+
+function fitToScreen() {
+  if (!state.nodes.length) { view={x:0,y:0,scale:1}; applyTransform(); return; }
+  const xs=state.nodes.map(n=>n.x), ys=state.nodes.map(n=>n.y);
+  const minX=Math.min(...xs)-60, maxX=Math.max(...xs)+60;
+  const minY=Math.min(...ys)-60, maxY=Math.max(...ys)+60;
+  const gw=maxX-minX, gh=maxY-minY;
+  const W=canvasWrap.offsetWidth, H=canvasWrap.offsetHeight;
+  const s = Math.min(W/gw, H/gh, 2) * 0.9;
+  view.scale = s;
+  view.x = W/2 - (minX+gw/2)*s;
+  view.y = H/2 - (minY+gh/2)*s;
+  applyTransform(); updateMinimap();
+}
+
+// ── Toolbar buttons ────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn-add-node').classList.toggle('active', m==='add');
+  document.getElementById('btn-connect').classList.toggle('active', m==='connect');
+  canvasWrap.className = m==='add'?'mode-add':m==='connect'?'mode-connect':'';
+  if (m!=='connect' && connectSource) {
+    connectSource=null; tempLine.style.display='none'; renderNodes();
+  }
+}
+
+document.getElementById('btn-add-node').addEventListener('click', ()=> setMode(mode==='add'?'select':'add'));
+document.getElementById('btn-connect').addEventListener('click', ()=> setMode(mode==='connect'?'select':'connect'));
+document.getElementById('btn-undo').addEventListener('click', undo);
+document.getElementById('btn-redo').addEventListener('click', redo);
+document.getElementById('sidebar-close').addEventListener('click', ()=>{ clearSelection(); closeSidebar(); });
+document.getElementById('btn-zoom-in').addEventListener('click', ()=> zoomTo(1.2));
+document.getElementById('btn-zoom-out').addEventListener('click', ()=> zoomTo(0.85));
+document.getElementById('btn-zoom-fit').addEventListener('click', fitToScreen);
+document.getElementById('btn-save').addEventListener('click', ()=>{ saveLocal(); toast('Saved!','success'); });
+document.getElementById('btn-clear').addEventListener('click', ()=> showClearModal());
+document.getElementById('btn-groups').addEventListener('click', ()=>{
+  groupsPanel.classList.toggle('open');
+  renderGroups();
+});
+document.getElementById('btn-add-group').addEventListener('click', showAddGroupModal);
+
+document.getElementById('btn-export-json').addEventListener('click', exportJSON);
+document.getElementById('btn-export-img').addEventListener('click', exportImage);
+
+// ── Search ─────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', (e)=>{
+  searchQuery = e.target.value.toLowerCase().trim();
+  renderNodes(); renderEdges();
+});
+
+// ── Keyboard ───────────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA') return;
+  if (e.key==='a'||e.key==='A') setMode(mode==='add'?'select':'add');
+  if (e.key==='c'||e.key==='C') setMode(mode==='connect'?'select':'connect');
+  if (e.key==='Escape') { setMode('select'); clearSelection(); closeSidebar(); ctxMenu.classList.remove('open'); }
+  if (e.key==='Delete'||e.key==='Backspace') {
+    if (selectedNode) deleteNode(selectedNode);
+    else if (selectedEdge) deleteEdge(selectedEdge);
+  }
+  if (e.key==='f'||e.key==='F') fitToScreen();
+  if (e.key==='+'||e.key==='=') zoomTo(1.2);
+  if (e.key==='-') zoomTo(0.85);
+  if ((e.ctrlKey||e.metaKey)&&e.key==='z') { e.preventDefault(); undo(); }
+  if ((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))) { e.preventDefault(); redo(); }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='s') { e.preventDefault(); saveLocal(); toast('Saved!','success'); }
+});
+
+// ── Modals ─────────────────────────────────────────────────────
+function showModal(html) {
+  modalContent.innerHTML = html;
+  modalOverlay.classList.add('open');
+}
+function closeModal() { modalOverlay.classList.remove('open'); }
+modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) closeModal(); });
+
+function showClearModal() {
+  showModal(`
+    <div class="modal-title">Clear All?</div>
+    <p style="color:var(--text-muted);font-size:14px;line-height:1.6">This will remove all people and connections. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn" style="background:var(--danger);color:#fff;border-color:transparent" onclick="clearAll()">Clear All</button>
+    </div>
+  `);
+}
+
+function clearAll() {
+  pushHistory();
+  state.nodes=[]; state.edges=[];
+  nodesLayer.innerHTML=''; edgesLayer.innerHTML='';
+  clearSelection(); closeSidebar();
+  updateInfoBar(); saveLocal(); closeModal();
+  toast('Canvas cleared');
+}
+
+function showAddGroupModal() {
+  showModal(`
+    <div class="modal-title">New Group</div>
+    <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="mg-name" placeholder="e.g. University"></div>
+    <div class="form-group"><label class="form-label">Color</label><div class="color-row">${GROUP_COLORS.map((c,i)=>`<div class="color-dot${i===0?' selected':''}" data-color="${c}" style="background:${c}"></div>`).join('')}</div></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="addGroup()">Add Group</button>
+    </div>
+  `);
+  modalContent.querySelectorAll('.color-dot').forEach(d=>{
+    d.addEventListener('click',()=>{ modalContent.querySelectorAll('.color-dot').forEach(x=>x.classList.remove('selected')); d.classList.add('selected'); });
+  });
+}
+
+function addGroup() {
+  const name = document.getElementById('mg-name').value.trim();
+  if (!name) return;
+  const color = modalContent.querySelector('.color-dot.selected')?.dataset.color || GROUP_COLORS[0];
+  pushHistory();
+  state.groups.push({ id:'g'+state.nextGroupId++, name, color });
+  closeModal(); renderGroups(); saveLocal(); toast('Group added','success');
+}
+
+// ── Persistence ────────────────────────────────────────────────
+function saveLocal() {
+  try {
+    localStorage.setItem('nexus_graph', JSON.stringify({ state, version:2 }));
+  } catch(e) {}
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem('nexus_graph');
+    if (!raw) return false;
+    const { state:s, version } = JSON.parse(raw);
+    if (!s) return false;
+    state.nodes = s.nodes || [];
+    state.edges = s.edges || [];
+    state.groups = s.groups || [...DEFAULT_GROUPS];
+    state.nextNodeId = s.nextNodeId || 1;
+    state.nextEdgeId = s.nextEdgeId || 1;
+    state.nextGroupId = s.nextGroupId || 10;
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── Export ─────────────────────────────────────────────────────
+function exportJSON() {
+  const json = JSON.stringify({ nodes:state.nodes, edges:state.edges, groups:state.groups }, null, 2);
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+  a.download = 'nexus-graph.json';
+  a.click();
+  toast('JSON exported','success');
+}
+
+function exportImage() {
+  const canvas = document.createElement('canvas');
+  const scale = 2;
+  canvas.width = canvasWrap.offsetWidth * scale;
+  canvas.height = canvasWrap.offsetHeight * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+  ctx.fillStyle = '#080b12';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  const tx = view.x, ty = view.y, ts = view.scale;
+
+  // Draw edges
+  state.edges.forEach(edge => {
+    const src = state.nodes.find(n=>n.id===edge.source);
+    const tgt = state.nodes.find(n=>n.id===edge.target);
+    if (!src||!tgt) return;
+    const rel = REL_TYPES[edge.type]||REL_TYPES.other;
+    const x1 = src.x*ts+tx, y1 = src.y*ts+ty;
+    const x2 = tgt.x*ts+tx, y2 = tgt.y*ts+ty;
+    ctx.strokeStyle = rel.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+
+  // Draw nodes
+  state.nodes.forEach(n => {
+    const nx = n.x*ts+tx, ny = n.y*ts+ty;
+    const r = 22*ts;
+    ctx.fillStyle = hexToRgba(getNodeColor(n),0.15);
+    ctx.strokeStyle = getNodeColor(n);
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(nx,ny,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    if (n.emoji) {
+      ctx.font = `${18*ts}px serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='#fff';
+      ctx.fillText(n.emoji, nx, ny);
+    } else {
+      ctx.font = `bold ${13*ts}px Syne, sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=getNodeColor(n);
+      ctx.fillText(initials(n.name), nx, ny);
+    }
+    ctx.font = `${10*ts}px Syne, sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillStyle='rgba(255,255,255,0.8)';
+    ctx.fillText(n.name, nx, ny+r+4);
+  });
+
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'nexus-graph.png';
+  a.click();
+  toast('Image exported','success');
+}
+
+// ── Info Bar ───────────────────────────────────────────────────
+function updateInfoBar() {
+  infoBar.textContent = `${state.nodes.length} ${state.nodes.length===1?'person':'people'} · ${state.edges.length} ${state.edges.length===1?'connection':'connections'}`;
+}
+
+// ── Helper ─────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function hexToRgba(hex, a=1) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ── Demo data ──────────────────────────────────────────────────
+function loadDemo() {
+  const people = [
+    { name:'Alice Chen',   emoji:'👩', color:'#4f8aff', x:400, y:260, groupId:'g4', notes:'Best friend since college' },
+    { name:'Bob Silva',    emoji:'👨', color:'#a78bfa', x:640, y:180, groupId:'g2', notes:'Work colleague' },
+    { name:'Carol Park',   emoji:'👧', color:'#34d399', x:660, y:380, groupId:'g3', notes:'Study partner' },
+    { name:'David Lee',    emoji:'🧔', color:'#fbbf24', x:200, y:180, groupId:'g1', notes:'Uncle' },
+    { name:'Eva Martinez', emoji:'👵', color:'#f472b6', x:200, y:380, groupId:'g1', notes:'Mom' },
+    { name:'Frank Wong',   emoji:'👦', color:'#fb923c', x:480, y:480, groupId:'g3', notes:'Classmate' },
+    { name:'Grace Kim',    emoji:'🧑‍🎓', color:'#06b6d4', x:820, y:280, groupId:'g2', notes:'Manager' },
+    { name:'Henry Patel',  emoji:'👴', color:'#f87171', x:320, y:520, groupId:'g1', notes:'Dad' },
+  ];
+
+  people.forEach(p => {
+    state.nodes.push({ id:uid('n'), ...p });
+  });
+
+  const es = [
+    [0,1,'colleague'],[0,2,'classmate'],[0,3,'family'],[0,4,'family'],
+    [1,6,'colleague'],[2,5,'classmate'],[3,7,'family'],[4,7,'romantic'],
+    [0,5,'friend'],[1,2,'friend'],[5,4,'friend'],
+  ];
+  es.forEach(([si,ti,type]) => {
+    const s = state.nodes[si], t = state.nodes[ti];
+    if (s&&t) state.edges.push({ id:uid('e'), source:s.id, target:t.id, type, label:'' });
+  });
+}
+
+// ── Init ───────────────────────────────────────────────────────
+(function init() {
+  const loaded = loadLocal();
+  if (!loaded || !state.nodes.length) {
+    loadDemo();
+    saveLocal();
+    toast('Welcome to Nexus! Demo loaded.','success');
+  } else {
+    toast('Graph loaded from storage','success');
+  }
+
+  render();
+  updateInfoBar();
+  updateUndoButtons();
+  renderGroups();
+
+  setTimeout(fitToScreen, 100);
+
+  // Mini map resize
+  const ro = new ResizeObserver(()=>updateMinimap());
+  ro.observe(canvasWrap);
+})();
+</script>
+</body>
+</html>
