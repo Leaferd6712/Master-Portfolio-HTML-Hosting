@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg,#e9f7ff,#fff6fb);
+    }
+
+    .calculator {
+        background: white;
+        padding: 20px;
+        border-radius: 18px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        width: 320px;
+    }
+
+    .display {
+        background: #f4f9ff;
+        border-radius: 12px;
+        padding: 15px;
+        font-size: 28px;
+        text-align: right;
+        margin-bottom: 15px;
+        overflow-x: auto;
+        min-height: 40px;
+        color: #222;
+        font-weight: bold;
+    }
+
+    .buttons {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+    }
+
+    button {
+        padding: 16px;
+        font-size: 18px;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        background: #eaf6ff;
+        transition: 0.15s;
+        font-weight: bold;
+    }
+
+    button:hover {
+        background: #d6eeff;
+        transform: translateY(-1px);
+    }
+
+    .operator { background:#ffe9f3; }
+    .equals { background:#c8ffd9; }
+    .clear { background:#ffdede; }
+
+    /* LOADING OVERLAY */
+    .overlay {
+        position: fixed;
+        inset: 0;
+        background: white;
+        display: none;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        z-index: 999;
+        text-align: center;
+    }
+
+    .overlay.active { display: flex; }
+
+    .big-text {
+        font-size: 48px;
+        font-weight: 900;
+        color: #222;
+        margin-bottom: 20px;
+    }
+
+    .progress {
+        width: 260px;
+        height: 10px;
+        background: #eee;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .bar {
+        height: 100%;
+        width: 0%;
+        background: #8be0ff;
+        animation: loadbar 1.5s linear forwards;
+    }
+
+    @keyframes loadbar {
+        from { width:0%; }
+        to { width:100%; }
+    }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+    <div id="display" class="display">0</div>
+
+    <div class="buttons">
+        <button class="clear" data-action="clear">C</button>
+        <button data-value="(">(</button>
+        <button data-value=")">)</button>
+        <button class="operator" data-value="/">÷</button>
+
+        <button data-value="7">7</button>
+        <button data-value="8">8</button>
+        <button data-value="9">9</button>
+        <button class="operator" data-value="*">×</button>
+
+        <button data-value="4">4</button>
+        <button data-value="5">5</button>
+        <button data-value="6">6</button>
+        <button class="operator" data-value="-">−</button>
+
+        <button data-value="1">1</button>
+        <button data-value="2">2</button>
+        <button data-value="3">3</button>
+        <button class="operator" data-value="+">+</button>
+
+        <button data-value="0">0</button>
+        <button data-value=".">.</button>
+        <button class="equals" data-action="equals" style="grid-column: span 2;">=</button>
+    </div>
+</div>
+
+<!-- LOADING SCREEN -->
+<div id="overlay" class="overlay">
+    <div id="overlayText" class="big-text">Calculating...</div>
+    <div class="progress"><div class="bar"></div></div>
+</div>
+
+<script>
+const display = document.getElementById('display');
+const buttons = document.querySelectorAll('button');
+const overlay = document.getElementById('overlay');
+const overlayText = document.getElementById('overlayText');
+
+let expression = '';
+
+function updateDisplay() {
+    display.textContent = expression || '0';
+}
+
+function appendValue(val) {
+    expression += val;
+    updateDisplay();
+}
+
+function clearDisplay() {
+    expression = '';
+    updateDisplay();
+}
+
+function calculate() {
+    if (!expression) return;
+
+    overlay.classList.add('active');
+    overlayText.textContent = 'Calculating...';
+
+    setTimeout(() => {
+        overlayText.textContent = 'USE YOUR BRAIN';
+    }, 700);
+
+    setTimeout(() => {
+        try {
+            const result = eval(expression);
+            expression = String(result);
+        } catch {
+            expression = 'Error';
+        }
+        overlay.classList.remove('active');
+        updateDisplay();
+    }, 1500);
+}
+
+buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const value = btn.dataset.value;
+        const action = btn.dataset.action;
+
+        if (value) appendValue(value);
+        if (action === 'clear') clearDisplay();
+        if (action === 'equals') calculate();
+    });
+});
+
+// Keyboard support
+window.addEventListener('keydown', e => {
+    if ((/[0-9+\-*/().]/).test(e.key)) {
+        appendValue(e.key);
+    }
+    if (e.key === 'Enter') calculate();
+    if (e.key === 'Backspace') {
+        expression = expression.slice(0, -1);
+        updateDisplay();
+    }
+    if (e.key.toLowerCase() === 'c') clearDisplay();
+});
+</script>
+
+</body>
+</html>
