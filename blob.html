@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liquid Blob Coin Chase</title>
+  <style>
+    :root{
+      --panel-bg: rgba(8, 12, 24, 0.76);
+      --panel-border: rgba(255,255,255,0.14);
+      --text: #f4fbff;
+      --muted: rgba(244,251,255,0.78);
+      --accent: #7cf0ff;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #05070f;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: none;
+    }
+
+    .hud {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 20;
+      user-select: none;
+      padding: 12px 14px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+      min-width: 240px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: 0.2px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .progressWrap {
+      margin-top: 10px;
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      overflow: hidden;
+    }
+
+    .progressBar {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(123,239,255,0.95), rgba(255,132,231,0.95));
+      transition: width 0.15s linear;
+    }
+
+    .panelToggle {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 30;
+      border: 0;
+      background: linear-gradient(135deg, rgba(123,239,255,0.95), rgba(255,132,231,0.95));
+      color: #081019;
+      font-weight: 800;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    }
+
+    .panel {
+      position: fixed;
+      right: 14px;
+      top: 60px;
+      z-index: 25;
+      width: min(340px, calc(100vw - 28px));
+      padding: 12px 14px 14px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+      user-select: none;
+      transition: transform 0.22s ease, opacity 0.22s ease;
+      transform-origin: top right;
+    }
+
+    .panel.collapsed {
+      transform: translateX(120%) scale(0.96);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .panelHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .miniBtn {
+      border: 0;
+      background: rgba(255,255,255,0.10);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .control {
+      margin: 10px 0;
+    }
+
+    .control label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .control input[type="range"] {
+      width: 100%;
+    }
+
+    .control input[type="color"] {
+      width: 100%;
+      height: 38px;
+      border: none;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .sizeGrid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .sizeBtn {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      padding: 10px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: transform 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+    }
+
+    .sizeBtn:hover {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,0.12);
+    }
+
+    .sizeBtn.active {
+      outline: 2px solid rgba(124,240,255,0.65);
+      background: rgba(124,240,255,0.14);
+    }
+
+    .sizeBtn.locked {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .sizeLabel {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .sizeMeta {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    button.action {
+      border: 0;
+      background: linear-gradient(135deg, rgba(123,239,255,0.95), rgba(255,132,231,0.95));
+      color: #081019;
+      font-weight: 800;
+      padding: 9px 12px;
+      border-radius: 11px;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: rgba(255,255,255,0.10);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.38;
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="title" id="levelTitle">Stage 1 — Prism Pond</div>
+    <div class="row"><span>Coins collected</span><span id="score">0</span></div>
+    <div class="row"><span>Stage progress</span><span id="stageProgress">0 / 12</span></div>
+    <div class="row"><span>Blob size</span><span id="blobSizeHud">Tiny</span></div>
+    <div class="row"><span>Blob mood</span><span id="mood">Jelly</span></div>
+    <div class="progressWrap"><div class="progressBar" id="progressBar"></div></div>
+  </div>
+
+  <button class="panelToggle" id="panelToggle">Settings</button>
+
+  <div class="panel" id="panel">
+    <div class="panelHeader">
+      <h2>Blob customiser</h2>
+      <button class="miniBtn" id="closePanel" title="Close panel">×</button>
+    </div>
+
+    <div class="control">
+      <label><span>Colour</span><span id="colorVal">#49e6ff</span></label>
+      <input id="color" type="color" value="#49e6ff">
+    </div>
+
+    <div class="control">
+      <label><span>Unlockable sizes</span><span id="sizeStatus">1 / 5 unlocked</span></label>
+      <div class="sizeGrid" id="sizeGrid"></div>
+    </div>
+
+    <div class="control">
+      <label><span>Shape</span><span id="shapeVal">42</span></label>
+      <input id="shape" type="range" min="0" max="100" value="42">
+    </div>
+
+    <div class="control">
+      <label><span>Blobness</span><span id="blobVal">62</span></label>
+      <input id="blobness" type="range" min="0" max="100" value="62">
+    </div>
+
+    <div class="control">
+      <label><span>Softness</span><span id="softVal">72</span></label>
+      <input id="softness" type="range" min="0" max="100" value="72">
+    </div>
+
+    <div class="buttons">
+      <button class="action" id="restart">Restart</button>
+      <button class="secondary" id="centerBlob">Center blob</button>
+    </div>
+
+    <div class="small">
+      Move your cursor around the screen. The blob follows smoothly, the world never ends, and bigger sizes unlock as you collect more coins.
+    </div>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const scoreEl = document.getElementById("score");
+    const levelTitleEl = document.getElementById("levelTitle");
+    const stageProgressEl = document.getElementById("stageProgress");
+    const progressBar = document.getElementById("progressBar");
+    const blobSizeHud = document.getElementById("blobSizeHud");
+    const moodEl = document.getElementById("mood");
+
+    const sizeGrid = document.getElementById("sizeGrid");
+    const sizeStatus = document.getElementById("sizeStatus");
+
+    const sizeInput = document.getElementById("shape");
+    const shapeInput = document.getElementById("shape");
+    const blobnessInput = document.getElementById("blobness");
+    const softnessInput = document.getElementById("softness");
+    const colorInput = document.getElementById("color");
+    const shapeVal = document.getElementById("shapeVal");
+    const blobVal = document.getElementById("blobVal");
+    const softVal = document.getElementById("softVal");
+    const colorVal = document.getElementById("colorVal");
+
+    const restartBtn = document.getElementById("restart");
+    const centerBlobBtn = document.getElementById("centerBlob");
+    const panel = document.getElementById("panel");
+    const panelToggle = document.getElementById("panelToggle");
+    const closePanel = document.getElementById("closePanel");
+
+    let w = 0, h = 0, dpr = 1;
+
+    function resize() {
+      dpr = Math.max(1, window.devicePixelRatio || 1);
+      w = window.innerWidth;
+      h = window.innerHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    window.addEventListener("resize", resize);
+
+    const stages = [
+      { name: "Prism Pond", bg1: "#081225", bg2: "#153e74", accent: "#63f3ff", glow: "#d9fbff" },
+      { name: "Candy Reef", bg1: "#16091d", bg2: "#4f1464", accent: "#ff8de9", glow: "#ffe3fb" },
+      { name: "Aurora Drift", bg1: "#071c18", bg2: "#0f5f6e", accent: "#7bffd1", glow: "#e4fff6" },
+      { name: "Solar Bloom", bg1: "#221106", bg2: "#7a2f11", accent: "#ffd369", glow: "#fff2c6" },
+      { name: "Neon Garden", bg1: "#100f28", bg2: "#2f2aa8", accent: "#b89cff", glow: "#efe6ff" },
+      { name: "Sky Candy", bg1: "#0c1632", bg2: "#225b9b", accent: "#7fe0ff", glow: "#dff8ff" }
+    ];
+
+    const sizeTiers = [
+      { label: "Tiny", size: 42, unlock: 0 },
+      { label: "Small", size: 56, unlock: 8 },
+      { label: "Medium", size: 72, unlock: 20 },
+      { label: "Large", size: 92, unlock: 40 },
+      { label: "Giant", size: 118, unlock: 70 }
+    ];
+
+    const stageStep = 12;
+    let score = 0;
+    let currentSizeTier = 0;
+    let currentStage = 0;
+
+    const settings = {
+      shape: +shapeInput.value / 100,
+      blobness: +blobnessInput.value / 100,
+      softness: +softnessInput.value / 100,
+      color: colorInput.value
+    };
+
+    const pointer = { x: 0, y: 0 };
+    let pointerActive = false;
+
+    const blob = {
+      x: 0,
+      y: 0,
+      vx: 0,
+      vy: 0,
+      squashX: 1,
+      squashY: 1,
+      wobble: 0
+    };
+
+    const camera = { x: 0, y: 0 };
+
+    const chunkSize = 900;
+    const chunkRadius = 2;
+    const chunks = new Map();
+    const particles = [];
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function hash2(x, y, salt = 0) {
+      let n = x * 374761393 + y * 668265263 + salt * 1442695041;
+      n = (n ^ (n >>> 13)) * 1274126177;
+      return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+    }
+
+    function mixHex(hexA, hexB, t) {
+      const a = hexA.replace("#", "");
+      const b = hexB.replace("#", "");
+      const ar = parseInt(a.slice(0, 2), 16), ag = parseInt(a.slice(2, 4), 16), ab = parseInt(a.slice(4, 6), 16);
+      const br = parseInt(b.slice(0, 2), 16), bg = parseInt(b.slice(2, 4), 16), bb = parseInt(b.slice(4, 6), 16);
+      const r = Math.round(ar + (br - ar) * t);
+      const g = Math.round(ag + (bg - ag) * t);
+      const bl = Math.round(ab + (bb - ab) * t);
+      return `rgb(${r},${g},${bl})`;
+    }
+
+    function lighten(hex, t) {
+      return mixHex(hex, "#ffffff", t);
+    }
+
+    function darken(hex, t) {
+      return mixHex(hex, "#000000", t);
+    }
+
+    function roundRectPath(x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + width, y, x + width, y + height, r);
+      ctx.arcTo(x + width, y + height, x, y + height, r);
+      ctx.arcTo(x, y + height, x, y, r);
+      ctx.arcTo(x, y, x + width, y, r);
+      ctx.closePath();
+    }
+
+    function currentTheme() {
+      const base = stages[currentStage % stages.length];
+      const boost = Math.min(0.18, Math.floor(currentStage / stages.length) * 0.02);
+      return {
+        name: base.name,
+        bg1: lighten(base.bg1, boost),
+        bg2: lighten(base.bg2, boost),
+        accent: base.accent,
+        glow: base.glow
+      };
+    }
+
+    function currentStageName() {
+      return `Stage ${currentStage + 1} — ${currentTheme().name}`;
+    }
+
+    function selectedSize() {
+      return sizeTiers[currentSizeTier].size;
+    }
+
+    function updateMood() {
+      if (settings.softness > 0.75) moodEl.textContent = "Mushy";
+      else if (settings.softness > 0.45) moodEl.textContent = "Jelly";
+      else moodEl.textContent = "Firm";
+    }
+
+    function updateSizeHud() {
+      const unlocked = sizeTiers.filter(t => score >= t.unlock).length;
+      sizeStatus.textContent = `${unlocked} / ${sizeTiers.length} unlocked`;
+      blobSizeHud.textContent = sizeTiers[currentSizeTier].label;
+    }
+
+    function syncUI() {
+      shapeVal.textContent = Math.round(settings.shape * 100);
+      blobVal.textContent = Math.round(settings.blobness * 100);
+      softVal.textContent = Math.round(settings.softness * 100);
+      colorVal.textContent = settings.color;
+      updateMood();
+      updateSizeHud();
+    }
+
+    function renderSizeButtons() {
+      sizeGrid.innerHTML = "";
+      sizeTiers.forEach((tier, index) => {
+        const unlocked = score >= tier.unlock;
+        const btn = document.createElement("button");
+        btn.className = "sizeBtn" + (index === currentSizeTier ? " active" : "") + (unlocked ? "" : " locked");
+        btn.innerHTML = `
+          <span class="sizeLabel">${tier.label}</span>
+          <span class="sizeMeta">${unlocked ? `Unlocked at ${tier.unlock} coins` : `Locked until ${tier.unlock} coins`}</span>
+        `;
+        btn.disabled = !unlocked;
+        btn.addEventListener("click", () => {
+          if (!unlocked) return;
+          currentSizeTier = index;
+          renderSizeButtons();
+          updateSizeHud();
+        });
+        sizeGrid.appendChild(btn);
+      });
+    }
+
+    function setStageFromScore() {
+      const newStage = Math.floor(score / stageStep);
+      if (newStage !== currentStage) {
+        currentStage = newStage;
+      }
+    }
+
+    function updateHud() {
+      setStageFromScore();
+      const stageCoinCount = stageStep;
+      const inStage = score % stageStep;
+      scoreEl.textContent = score;
+      stageProgressEl.textContent = `${inStage} / ${stageCoinCount}`;
+      levelTitleEl.textContent = currentStageName();
+      progressBar.style.width = `${(inStage / stageCoinCount) * 100}%`;
+      syncUI();
+      renderSizeButtons();
+    }
+
+    function worldChunkKey(cx, cy) {
+      return `${cx},${cy}`;
+    }
+
+    function spawnChunk(cx, cy) {
+      const key = worldChunkKey(cx, cy);
+      if (chunks.has(key)) return;
+
+      const theme = currentTheme();
+      const countSeed = Math.floor(hash2(cx, cy, 1) * 5);
+      const coinCount = 6 + countSeed;
+
+      const items = [];
+      for (let i = 0; i < coinCount; i++) {
+        const rx = hash2(cx, cy, 10 + i);
+        const ry = hash2(cx, cy, 40 + i);
+        const x = cx * chunkSize + rx * chunkSize;
+        const y = cy * chunkSize + ry * chunkSize;
+        items.push({
+          x,
+          y,
+          r: 10 + hash2(cx, cy, 80 + i) * 5,
+          spin: hash2(cx, cy, 120 + i) * Math.PI * 2,
+          pulse: hash2(cx, cy, 160 + i) * Math.PI * 2,
+          taken: false,
+          colorHint: Math.random() < 0.5 ? theme.accent : theme.glow
+        });
+      }
+
+      chunks.set(key, {
+        cx,
+        cy,
+        items
+      });
+    }
+
+    function ensureChunksAroundPlayer() {
+      const pcx = Math.floor(blob.x / chunkSize);
+      const pcy = Math.floor(blob.y / chunkSize);
+
+      for (let dx = -chunkRadius; dx <= chunkRadius; dx++) {
+        for (let dy = -chunkRadius; dy <= chunkRadius; dy++) {
+          spawnChunk(pcx + dx, pcy + dy);
+        }
+      }
+
+      for (const [key, chunk] of chunks) {
+        if (Math.abs(chunk.cx - pcx) > chunkRadius + 2 || Math.abs(chunk.cy - pcy) > chunkRadius + 2) {
+          chunks.delete(key);
+        }
+      }
+    }
+
+    function drawInfiniteBackground(theme, t) {
+      ctx.fillStyle = theme.bg1;
+      ctx.fillRect(0, 0, w, h);
+
+      const farGlow = ctx.createRadialGradient(w * 0.5, h * 0.42, 10, w * 0.5, h * 0.5, Math.max(w, h) * 0.85);
+      farGlow.addColorStop(0, "rgba(255,255,255,0.08)");
+      farGlow.addColorStop(0.5, "rgba(255,255,255,0.03)");
+      farGlow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = farGlow;
+      ctx.fillRect(0, 0, w, h);
+
+      const left = camera.x - w / 2;
+      const top = camera.y - h / 2;
+      const right = camera.x + w / 2;
+      const bottom = camera.y + h / 2;
+
+      const minCx = Math.floor(left / chunkSize) - 1;
+      const maxCx = Math.floor(right / chunkSize) + 1;
+      const minCy = Math.floor(top / chunkSize) - 1;
+      const maxCy = Math.floor(bottom / chunkSize) + 1;
+
+      for (let cx = minCx; cx <= maxCx; cx++) {
+        for (let cy = minCy; cy <= maxCy; cy++) {
+          const sx = cx * chunkSize - camera.x + w / 2;
+          const sy = cy * chunkSize - camera.y + h / 2;
+
+          ctx.save();
+          ctx.strokeStyle = "rgba(255,255,255,0.05)";
+          ctx.lineWidth = 1;
+          roundRectPath(sx + 6, sy + 6, chunkSize - 12, chunkSize - 12, 28);
+          ctx.stroke();
+          ctx.restore();
+
+          const seedA = hash2(cx, cy, 3);
+          const seedB = hash2(cx, cy, 7);
+          const seedC = hash2(cx, cy, 11);
+
+          const glows = [
+            { ox: seedA * chunkSize, oy: seedB * chunkSize, r: 120 + seedC * 120, a: 0.08 },
+            { ox: seedB * chunkSize, oy: seedC * chunkSize, r: 90 + seedA * 100, a: 0.05 }
+          ];
+
+          for (const g of glows) {
+            const gx = sx + g.ox;
+            const gy = sy + g.oy;
+            const rg = ctx.createRadialGradient(gx, gy, 0, gx, gy, g.r);
+            rg.addColorStop(0, `rgba(255,255,255,${g.a})`);
+            rg.addColorStop(0.5, `rgba(255,255,255,${g.a * 0.35})`);
+            rg.addColorStop(1, "rgba(255,255,255,0)");
+            ctx.fillStyle = rg;
+            ctx.beginPath();
+            ctx.arc(gx, gy, g.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      const accentGlow = ctx.createRadialGradient(w * 0.15, h * 0.80, 10, w * 0.15, h * 0.80, 160);
+      accentGlow.addColorStop(0, `${theme.accent}44`);
+      accentGlow.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = accentGlow;
+      ctx.beginPath();
+      ctx.arc(w * 0.15, h * 0.80, 160, 0, Math.PI * 2);
+      ctx.fill();
+
+      const accentGlow2 = ctx.createRadialGradient(w * 0.84, h * 0.18, 10, w * 0.84, h * 0.18, 130);
+      accentGlow2.addColorStop(0, `${theme.glow}30`);
+      accentGlow2.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = accentGlow2;
+      ctx.beginPath();
+      ctx.arc(w * 0.84, h * 0.18, 130, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawCoin(c, theme, t) {
+      const bob = Math.sin(t * 0.004 + c.pulse) * 3;
+      const r = c.r + Math.sin(t * 0.006 + c.pulse) * 0.6;
+
+      ctx.save();
+      ctx.translate(c.x, c.y + bob);
+      ctx.rotate(c.spin);
+
+      const gold1 = "rgba(255,252,205,1)";
+      const gold2 = "rgba(255,214,92,1)";
+      const gold3 = "rgba(214,132,18,1)";
+
+      const grad = ctx.createRadialGradient(-r * 0.25, -r * 0.25, r * 0.14, 0, 0, r);
+      grad.addColorStop(0, gold1);
+      grad.addColorStop(0.46, gold2);
+      grad.addColorStop(1, gold3);
+
+      ctx.shadowColor = theme.accent;
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(255,255,255,0.36)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,0.34)";
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.22, -r * 0.34, r * 0.18, r * 0.30, -0.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function spawnParticles(x, y, baseColor) {
+      for (let i = 0; i < 14; i++) {
+        particles.push({
+          x, y,
+          vx: rand(-2.4, 2.4),
+          vy: rand(-2.4, 2.4),
+          life: rand(24, 48),
+          size: rand(1.8, 4.8),
+          color: i % 2 === 0 ? lighten(baseColor, 0.45) : lighten(baseColor, 0.12)
+        });
+      }
+    }
+
+    function updateParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.97;
+        p.vy *= 0.97;
+        p.life -= 1;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+    }
+
+    function drawParticles() {
+      for (const p of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 48));
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function drawBlob(t, theme) {
+      const size = selectedSize();
+      const softness = settings.softness;
+      const shape = settings.shape;
+      const blobness = settings.blobness;
+
+      const points = Math.floor(16 + blobness * 10);
+      const step = (Math.PI * 2) / points;
+
+      const dx = pointer.x - w / 2;
+      const dy = pointer.y - h / 2;
+      const dist = Math.hypot(dx, dy) || 1;
+      const followStrength = pointerActive ? 0.16 : 0.09;
+      const speedBias = 1.1 + softness * 1.5;
+      const drag = 0.90 - softness * 0.03;
+
+      blob.vx += (dx / dist) * followStrength;
+      blob.vy += (dy / dist) * followStrength;
+      blob.vx *= drag;
+      blob.vy *= drag;
+
+      blob.x += blob.vx * speedBias;
+      blob.y += blob.vy * speedBias;
+
+      blob.squashX = 1 + Math.min(Math.abs(blob.vx) * 0.010, 0.26);
+      blob.squashY = 1 - Math.min(Math.abs(blob.vx) * 0.004, 0.12) + Math.min(Math.abs(blob.vy) * 0.004, 0.10);
+      blob.wobble += (Math.abs(blob.vx) + Math.abs(blob.vy)) * (0.001 + blobness * 0.0015);
+
+      const irregularity = 0.25 + shape * 1.35;
+      const wobblePower = 4 + blobness * 12;
+      const squish = 1 + softness * 0.10;
+
+      ctx.save();
+      ctx.translate(blob.x, blob.y);
+      ctx.scale(blob.squashX, blob.squashY);
+
+      const inner = lighten(settings.color, 0.48);
+      const outer = darken(settings.color, 0.35);
+
+      const grad = ctx.createRadialGradient(-size * 0.2, -size * 0.3, size * 0.2, 0, 0, size * 1.45);
+      grad.addColorStop(0, inner);
+      grad.addColorStop(0.55, settings.color);
+      grad.addColorStop(1, outer);
+
+      ctx.shadowColor = theme.accent;
+      ctx.shadowBlur = 26 + softness * 16;
+      ctx.fillStyle = grad;
+
+      ctx.beginPath();
+      for (let i = 0; i <= points; i++) {
+        const a = i * step;
+        const waveA = Math.sin(a * 3 + t * 0.003 + blob.wobble) * wobblePower;
+        const waveB = Math.cos(a * 2 + t * 0.0021 + blob.wobble * 0.75) * (wobblePower * 0.6);
+        const waveC = Math.sin(a * 6 + t * 0.0018 + blob.wobble * 1.3) * (wobblePower * 0.28);
+        const softBoost = 1 + softness * 0.12;
+        const rr = (size * squish) + (waveA + waveB + waveC) * irregularity * softBoost;
+        const px = Math.cos(a) * rr;
+        const py = Math.sin(a) * rr;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.scale(1 / Math.max(blob.squashX, blob.squashY), 1 / Math.max(blob.squashX, blob.squashY));
+
+      ctx.fillStyle = "#0e1726";
+      ctx.beginPath();
+      ctx.arc(-size * 0.24, -size * 0.16, Math.max(3.8, size * 0.075), 0, Math.PI * 2);
+      ctx.arc(size * 0.24, -size * 0.16, Math.max(3.8, size * 0.075), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#0e1726";
+      ctx.lineWidth = Math.max(3, size * 0.07);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.02, size * 0.28, 0.12 * Math.PI, 0.88 * Math.PI);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.beginPath();
+      ctx.ellipse(-size * 0.30, -size * 0.35, size * 0.13, size * 0.22, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function collectCoins(theme) {
+      let collectedThisFrame = 0;
+      const size = selectedSize();
+
+      for (const chunk of chunks.values()) {
+        for (const coin of chunk.items) {
+          if (coin.taken) continue;
+
+          coin.spin += 0.013;
+          coin.pulse += 0.08;
+
+          const dx = coin.x - blob.x;
+          const dy = coin.y - blob.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < size + coin.r * 0.92) {
+            coin.taken = true;
+            score++;
+            collectedThisFrame++;
+            spawnParticles(coin.x, coin.y, theme.accent);
+          }
+        }
+      }
+
+      if (collectedThisFrame > 0) {
+        updateHud();
+        renderSizeButtons();
+      }
+    }
+
+    function drawWorld(t) {
+      const theme = currentTheme();
+
+      drawInfiniteBackground(theme, t);
+
+      ctx.save();
+      ctx.translate(w / 2 - camera.x, h / 2 - camera.y);
+
+      const left = camera.x - w / 2;
+      const top = camera.y - h / 2;
+      const right = camera.x + w / 2;
+      const bottom = camera.y + h / 2;
+
+      const minCx = Math.floor(left / chunkSize) - 1;
+      const maxCx = Math.floor(right / chunkSize) + 1;
+      const minCy = Math.floor(top / chunkSize) - 1;
+      const maxCy = Math.floor(bottom / chunkSize) + 1;
+
+      for (let cx = minCx; cx <= maxCx; cx++) {
+        for (let cy = minCy; cy <= maxCy; cy++) {
+          const chunk = chunks.get(worldChunkKey(cx, cy));
+          if (!chunk) continue;
+          for (const coin of chunk.items) {
+            if (!coin.taken) drawCoin(coin, theme, t);
+          }
+        }
+      }
+
+      drawBlob(t, theme);
+      ctx.restore();
+
+      drawParticles();
+    }
+
+    function loop(t) {
+      const theme = currentTheme();
+
+      camera.x = blob.x;
+      camera.y = blob.y;
+
+      ensureChunksAroundPlayer();
+      collectCoins(theme);
+      updateParticles();
+      setStageFromScore();
+
+      levelTitleEl.textContent = currentStageName();
+      stageProgressEl.textContent = `${score % stageStep} / ${stageStep}`;
+      progressBar.style.width = `${((score % stageStep) / stageStep) * 100}%`;
+
+      updateMood();
+      updateSizeHud();
+
+      drawWorld(t);
+      requestAnimationFrame(loop);
+    }
+
+    function restartGame() {
+      score = 0;
+      currentStage = 0;
+      currentSizeTier = 0;
+      blob.x = 0;
+      blob.y = 0;
+      blob.vx = 0;
+      blob.vy = 0;
+      blob.squashX = 1;
+      blob.squashY = 1;
+      blob.wobble = 0;
+      chunks.clear();
+      particles.length = 0;
+      centerBlob();
+      updateHud();
+      renderSizeButtons();
+    }
+
+    function centerBlob() {
+      blob.x = 0;
+      blob.y = 0;
+      camera.x = 0;
+      camera.y = 0;
+      pointer.x = w / 2;
+      pointer.y = h / 2;
+    }
+
+    function unlockBestSize() {
+      let best = 0;
+      for (let i = 0; i < sizeTiers.length; i++) {
+        if (score >= sizeTiers[i].unlock) best = i;
+      }
+      if (best > currentSizeTier && score >= sizeTiers[best].unlock) {
+        currentSizeTier = best;
+      }
+    }
+
+    function updateStageAndUnlocks() {
+      setStageFromScore();
+      unlockBestSize();
+      updateHud();
+      renderSizeButtons();
+    }
+
+    window.addEventListener("mousemove", (e) => {
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+      pointerActive = true;
+    });
+
+    window.addEventListener("touchstart", (e) => {
+      if (e.touches && e.touches[0]) {
+        pointer.x = e.touches[0].clientX;
+        pointer.y = e.touches[0].clientY;
+        pointerActive = true;
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchmove", (e) => {
+      if (e.touches && e.touches[0]) {
+        pointer.x = e.touches[0].clientX;
+        pointer.y = e.touches[0].clientY;
+        pointerActive = true;
+      }
+    }, { passive: true });
+
+    window.addEventListener("touchend", () => {
+      pointerActive = false;
+    });
+
+    shapeInput.addEventListener("input", () => {
+      settings.shape = +shapeInput.value / 100;
+      syncUI();
+    });
+
+    blobnessInput.addEventListener("input", () => {
+      settings.blobness = +blobnessInput.value / 100;
+      syncUI();
+    });
+
+    softnessInput.addEventListener("input", () => {
+      settings.softness = +softnessInput.value / 100;
+      syncUI();
+    });
+
+    colorInput.addEventListener("input", () => {
+      settings.color = colorInput.value;
+      syncUI();
+    });
+
+    restartBtn.addEventListener("click", restartGame);
+    centerBlobBtn.addEventListener("click", centerBlob);
+
+    panelToggle.addEventListener("click", () => {
+      panel.classList.toggle("collapsed");
+    });
+
+    closePanel.addEventListener("click", () => {
+      panel.classList.add("collapsed");
+    });
+
+    function updateHud() {
+      scoreEl.textContent = score;
+      levelTitleEl.textContent = currentStageName();
+      stageProgressEl.textContent = `${score % stageStep} / ${stageStep}`;
+      progressBar.style.width = `${((score % stageStep) / stageStep) * 100}%`;
+      syncUI();
+    }
+
+    window.addEventListener("load", () => {
+      resize();
+      centerBlob();
+      updateHud();
+      renderSizeButtons();
+      ensureChunksAroundPlayer();
+      requestAnimationFrame(loop);
+    });
+  </script>
+</body>
+</html>
