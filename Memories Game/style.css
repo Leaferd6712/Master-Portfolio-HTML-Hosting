@@ -1,0 +1,563 @@
+:root {
+  --bg: #05070c;
+  --bg-alt: #0d1320;
+  --panel: rgba(11, 17, 27, 0.82);
+  --panel-strong: rgba(15, 22, 35, 0.92);
+  --border: rgba(130, 163, 201, 0.16);
+  --text: #edf0f6;
+  --muted: #9ea8bb;
+  --accent: #86c1ff;
+  --accent-soft: rgba(134, 193, 255, 0.16);
+  --danger: #ff8e8e;
+  --hope: #a0ffcf;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  --radius: 24px;
+  --transition: 220ms ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(68, 96, 144, 0.18), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(160, 255, 207, 0.08), transparent 22%),
+    linear-gradient(180deg, #02040a 0%, #05070c 45%, #090d16 100%);
+  color: var(--text);
+  font-family: "Palatino Linotype", "Book Antiqua", Garamond, Georgia, serif;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.screen-noise {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  opacity: 0.12;
+  background-image:
+    linear-gradient(transparent 0%, rgba(255, 255, 255, 0.03) 50%, transparent 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0%, transparent 35%, rgba(255, 255, 255, 0.015) 65%, transparent 100%);
+  background-size: 100% 4px, 7px 100%;
+  animation: drift 16s linear infinite;
+}
+
+.app-shell {
+  width: min(1140px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 2rem;
+}
+
+.top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.game-title {
+  margin: 0.2rem 0 0;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.eyebrow,
+.label,
+.scene-subtitle,
+.choice-hint {
+  font-family: Consolas, "Lucida Console", monospace;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.status-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
+  gap: 0.75rem;
+  min-width: min(360px, 100%);
+}
+
+.status-item,
+.panel {
+  backdrop-filter: blur(14px);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.status-item {
+  border-radius: 18px;
+  padding: 0.8rem 1rem;
+}
+
+.status-item strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.3rem;
+}
+
+.panel {
+  border-radius: var(--radius);
+  padding: 1.2rem;
+}
+
+.title-screen,
+.ending-screen {
+  display: none;
+}
+
+.active-screen {
+  display: block;
+}
+
+.title-screen {
+  padding: clamp(1.5rem, 3vw, 2.4rem);
+}
+
+.title-screen h2,
+.ending-screen h2,
+#scene-title {
+  margin: 0.4rem 0 1rem;
+  font-size: clamp(2rem, 4.3vw, 3.2rem);
+  line-height: 1.05;
+}
+
+.lead {
+  max-width: 58rem;
+  margin-bottom: 1.6rem;
+  font-size: clamp(1.2rem, 2.6vw, 1.5rem);
+  color: rgba(237, 240, 246, 0.9);
+}
+
+.title-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1.4rem 0 2rem;
+}
+
+button {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 0.95rem 1.25rem;
+  transition: transform var(--transition), border-color var(--transition), background-color var(--transition), color var(--transition), opacity var(--transition);
+}
+
+button:hover,
+button:focus-visible {
+  transform: translateY(-1px);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, rgba(134, 193, 255, 0.28), rgba(160, 255, 207, 0.18));
+  border-color: rgba(160, 255, 207, 0.3);
+  color: var(--text);
+}
+
+.secondary-button,
+.ghost-button,
+.choice-button {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.secondary-button:hover,
+.ghost-button:hover,
+.choice-button:hover,
+.primary-button:hover,
+.choice-button:focus-visible {
+  border-color: rgba(134, 193, 255, 0.45);
+  background: rgba(134, 193, 255, 0.08);
+}
+
+.ghost-button {
+  color: var(--muted);
+}
+
+.small-button {
+  padding: 0.55rem 0.9rem;
+}
+
+.title-card-grid,
+.sidebar-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.title-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.title-card,
+.inset-panel,
+.scene-card {
+  background: var(--panel-strong);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.title-card {
+  padding: 1rem 1.1rem;
+}
+
+.title-card h3,
+.section-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.25rem;
+}
+
+.game-screen {
+  display: none;
+  gap: 1rem;
+}
+
+.game-screen.active-screen {
+  display: grid;
+}
+
+.scene-meta,
+.section-row,
+.relationship-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.meta-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.scene-card {
+  padding: clamp(1.15rem, 2.5vw, 1.8rem);
+  min-height: 320px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scene-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(130deg, transparent 0%, rgba(134, 193, 255, 0.08) 50%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+
+.scene-card.glitching::after {
+  opacity: 1;
+  animation: glitchFlash 500ms ease 1;
+}
+
+.scene-header {
+  margin-bottom: 1rem;
+}
+
+.scene-subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+}
+
+.scene-text {
+  font-size: clamp(1.2rem, 2.8vw, 1.5rem);
+  color: rgba(237, 240, 246, 0.96);
+}
+
+.scene-text p {
+  margin: 0 0 1rem;
+}
+
+.sidebar-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inset-panel {
+  padding: 1rem;
+}
+
+.relationship-stack {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.meter {
+  margin-top: 0.35rem;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  width: 50%;
+  background: linear-gradient(90deg, rgba(255, 142, 142, 0.85), rgba(160, 255, 207, 0.9));
+  transition: width 250ms ease;
+}
+
+.memory-ledger {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.memory-ledger li {
+  border-left: 2px solid rgba(134, 193, 255, 0.3);
+  padding-left: 0.85rem;
+  color: rgba(237, 240, 246, 0.84);
+  font-size: 1.05rem;
+}
+
+.memory-ledger strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--muted);
+  font-family: Consolas, "Lucida Console", monospace;
+}
+
+.market-offers,
+.archive-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.market-offers li,
+.archive-list li {
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.market-offers .offer-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.35rem;
+  font-family: Consolas, "Lucida Console", monospace;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.market-offers button {
+  margin-top: 0.45rem;
+  width: 100%;
+  border-radius: 10px;
+  padding: 0.55rem;
+}
+
+.synthesis-ready {
+  color: var(--hope);
+}
+
+.synthesis-cooldown {
+  color: var(--muted);
+}
+
+.distorted {
+  text-shadow: 0 0 10px rgba(134, 193, 255, 0.35);
+}
+
+.choices-container {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.choice-button {
+  width: 100%;
+  padding: 1rem 1.05rem;
+  text-align: left;
+  border-radius: 18px;
+  font-size: 1.12rem;
+}
+
+.choice-button .choice-note {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-family: Consolas, "Lucida Console", monospace;
+  font-size: 0.78rem;
+}
+
+.choice-button.dangerous {
+  border-color: rgba(255, 142, 142, 0.26);
+}
+
+.choice-button.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ending-screen {
+  padding: clamp(1.5rem, 3vw, 2rem);
+}
+
+.ending-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.8rem;
+  margin: 1.5rem 0;
+}
+
+.ending-summary .summary-card {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ending-summary .summary-card strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.3rem;
+}
+
+.fade-memory {
+  animation: fadeMemory 1600ms ease both;
+}
+
+.identity-low .app-shell,
+.identity-low .scene-card,
+.identity-low .panel {
+  filter: saturate(0.85);
+}
+
+.identity-critical .scene-card {
+  animation: jitter 180ms step-end 4;
+}
+
+@keyframes drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(14px);
+  }
+}
+
+@keyframes glitchFlash {
+  0% {
+    transform: translateX(0);
+    opacity: 0.15;
+  }
+  25% {
+    transform: translateX(-4px);
+    opacity: 0.28;
+  }
+  50% {
+    transform: translateX(3px);
+    opacity: 0.18;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeMemory {
+  0% {
+    opacity: 1;
+    letter-spacing: normal;
+  }
+  50% {
+    opacity: 0.35;
+    letter-spacing: 0.02em;
+  }
+  100% {
+    opacity: 1;
+    letter-spacing: normal;
+  }
+}
+
+@keyframes jitter {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-1px, 1px);
+  }
+  50% {
+    transform: translate(1px, -1px);
+  }
+  75% {
+    transform: translate(-1px, -1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@media (max-width: 820px) {
+  .top-bar {
+    flex-direction: column;
+  }
+
+  .status-panel,
+  .sidebar-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    width: min(100% - 1rem, 100%);
+    padding-top: 0.8rem;
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+
+  .title-actions {
+    flex-direction: column;
+  }
+
+  .title-actions button,
+  .choice-button,
+  .small-button {
+    width: 100%;
+  }
+
+  .scene-text {
+    font-size: 1.22rem;
+  }
+}

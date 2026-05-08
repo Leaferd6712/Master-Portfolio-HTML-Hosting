@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fragments</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="screen-noise"></div>
+
+  <main class="app-shell">
+    <header class="top-bar">
+      <div>
+        <p class="eyebrow">Memory Exchange Terminal</p>
+        <h1 class="game-title">Fragments</h1>
+      </div>
+
+      <div class="status-panel" aria-live="polite">
+        <div class="status-item">
+          <span class="label">Credits</span>
+          <strong id="money-value">0</strong>
+        </div>
+        <div class="status-item">
+          <span class="label">Identity</span>
+          <strong id="identity-value">100</strong>
+        </div>
+        <div class="status-item">
+          <span class="label">Coherence</span>
+          <strong id="coherence-value">100</strong>
+        </div>
+      </div>
+    </header>
+
+    <section id="title-screen" class="panel title-screen active-screen" aria-labelledby="title-heading">
+      <p class="eyebrow">An interactive story about what remains</p>
+      <h2 id="title-heading">Some debts are paid with time. Yours can be paid with memory.</h2>
+      <p class="lead">
+        Rent is due in three days. The city has built a market for forgetting, and desperate people line up to sell pieces of their lives.
+        Tonight you decide how much of yourself can be traded before the person left behind stops feeling like you.
+      </p>
+
+      <div class="title-actions">
+        <button id="new-game-button" class="primary-button">Begin a New Life</button>
+        <button id="continue-button" class="secondary-button" hidden>Continue from Last Save</button>
+        <button id="clear-save-button" class="ghost-button" hidden>Erase Save</button>
+      </div>
+      <p id="meta-summary" class="choice-hint">No completed runs yet.</p>
+
+      <div class="title-card-grid">
+        <article class="title-card">
+          <h3>What you will trade</h3>
+          <p>Moments, skills, promises, and the stories that make a relationship real.</p>
+        </article>
+        <article class="title-card">
+          <h3>What changes</h3>
+          <p>Dialogue, available choices, your sense of self, and how other people remember you.</p>
+        </article>
+        <article class="title-card">
+          <h3>How it ends</h3>
+          <p>There are multiple endings. Some leave you poorer and whole. Some leave you rich and gone.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="game-screen" class="panel game-screen" aria-live="polite">
+      <div class="scene-meta">
+        <p id="chapter-label" class="eyebrow">Act I</p>
+        <div class="meta-actions">
+          <button id="audio-toggle-button" class="ghost-button small-button">Enable Audio</button>
+          <button id="save-button" class="ghost-button small-button">Save</button>
+        </div>
+      </div>
+
+      <article id="scene-card" class="scene-card">
+        <div class="scene-header">
+          <h2 id="scene-title">Title</h2>
+          <p id="scene-subtitle" class="scene-subtitle">Subtitle</p>
+        </div>
+
+        <div id="scene-text" class="scene-text"></div>
+      </article>
+
+      <aside class="sidebar-grid">
+        <section class="panel inset-panel">
+          <h3 class="section-title">People Holding On</h3>
+          <div class="relationship-stack">
+            <div class="relationship-item">
+              <div class="relationship-row">
+                <span>Alex</span>
+                <span id="alex-value">50</span>
+              </div>
+              <div class="meter"><span id="alex-meter"></span></div>
+            </div>
+            <div class="relationship-item">
+              <div class="relationship-row">
+                <span>Mara</span>
+                <span id="mara-value">50</span>
+              </div>
+              <div class="meter"><span id="mara-meter"></span></div>
+            </div>
+            <div class="relationship-item">
+              <div class="relationship-row">
+                <span>Jonah</span>
+                <span id="jonah-value">50</span>
+              </div>
+              <div class="meter"><span id="jonah-meter"></span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel inset-panel memory-ledger-panel">
+          <div class="section-row">
+            <h3 class="section-title">Memories Sold</h3>
+            <span id="memory-count">0</span>
+          </div>
+          <ul id="memory-ledger" class="memory-ledger"></ul>
+        </section>
+
+        <section class="panel inset-panel">
+          <div class="section-row">
+            <h3 class="section-title">Market Pulse</h3>
+            <span id="market-day">D1</span>
+          </div>
+          <ul id="market-offers" class="market-offers"></ul>
+        </section>
+
+        <section class="panel inset-panel">
+          <div class="section-row">
+            <h3 class="section-title">Synthesis Desk</h3>
+            <button id="synthesize-button" class="ghost-button small-button">Fuse Last Two</button>
+          </div>
+          <p id="synthesis-note" class="choice-hint">Blend two sold memories to create a volatile fragment.</p>
+        </section>
+
+        <section class="panel inset-panel">
+          <div class="section-row">
+            <h3 class="section-title">Archive Echoes</h3>
+            <span id="archive-count">0</span>
+          </div>
+          <ul id="archive-list" class="archive-list"></ul>
+        </section>
+      </aside>
+
+      <section class="panel inset-panel">
+        <div class="section-row">
+          <h3 class="section-title">Choices</h3>
+          <p id="choice-hint" class="choice-hint">Every decision leaves a shape behind.</p>
+        </div>
+        <div id="choices-container" class="choices-container"></div>
+      </section>
+    </section>
+
+    <section id="ending-screen" class="panel ending-screen" aria-live="polite">
+      <p id="ending-label" class="eyebrow">Ending</p>
+      <h2 id="ending-title">Title</h2>
+      <div id="ending-text" class="scene-text ending-text"></div>
+      <div id="ending-summary" class="ending-summary"></div>
+      <div class="title-actions">
+        <button id="restart-button" class="primary-button">Restart</button>
+        <button id="return-button" class="secondary-button">Return to Title</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
