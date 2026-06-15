@@ -6,183 +6,267 @@
   <title>Flashcard Maker</title>
   <style>
     :root{
-      --page-margin-mm: 10mm;
-      --page-width-mm: 210mm;
-      --page-height-mm: 297mm;
-      --card-gap-mm: 4mm;
-      --card-padding-mm: 4mm;
+      --bg:#f4f6f8;
+      --panel:#ffffff;
+      --panel-2:#fafbfc;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --accent:#2563eb;
+      --accent-2:#1d4ed8;
+      --success:#0f766e;
+      --warn:#b45309;
+      --shadow:0 10px 30px rgba(15,23,42,.06);
+      --radius:16px;
+      --font:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
 
-      /* beige theme */
-      --ui-accent: #b58f60;       /* warm brown/gold */
-      --bg: #fbf7f0;              /* very light beige page background */
-      --panel-bg: #fffefb;        /* near-white for panels */
-      --muted: #6b5a49;           /* muted brown for text */
-      --card-border: rgba(107,90,73,0.08);
-      --font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      --page-margin-mm:10mm;
+      --page-width-mm:210mm;
+      --page-height-mm:297mm;
+      --card-gap-mm:4mm;
+      --card-padding-mm:4mm;
     }
+
     *{box-sizing:border-box}
-    body{font-family:var(--font-family);margin:0;background:var(--bg);color:var(--muted)}
-    header{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 18px;background:linear-gradient(0deg,var(--panel-bg),var(--panel-bg));gap:14px;border-bottom:1px solid rgba(0,0,0,0.04)}
-    h1{font-size:20px;margin:0;color:#3f3326}
-    .subtitle{font-size:13px;color:#5a4b3b}
+    html,body{margin:0;padding:0;font-family:var(--font);background:var(--bg);color:var(--text)}
+    body{min-height:100vh}
 
-    /* Controls */
-    .controls{display:flex;flex-direction:column;gap:12px;min-width:320px}
-    textarea{width:100%;min-height:140px;padding:10px;font-size:14px;border:1px solid #e6dfd5;border-radius:8px;background:transparent;color:var(--muted)}
-    .row{display:flex;gap:10px;align-items:center}
-    label{font-size:13px;color:var(--muted)}
-    select,input[type=number]{padding:8px;border:1px solid #e6dfd5;border-radius:8px;background:white}
-    button, a.button-link{padding:9px 14px;border-radius:10px;border:none;background:var(--ui-accent);color:white;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(181,143,96,0.15)}
-    button.ghost, a.button-link.ghost{background:transparent;color:var(--ui-accent);border:1px solid var(--ui-accent)}
-    .small{font-size:12px;color:#7a6a59}
+    .app-header{
+      position:sticky;top:0;z-index:10;
+      background:rgba(244,246,248,.92);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(229,231,235,.85);
+    }
+    .header-inner{
+      max-width:1400px;margin:0 auto;padding:18px 20px;
+      display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    }
+    .title-wrap h1{margin:0;font-size:22px;line-height:1.2}
+    .title-wrap p{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:850px}
+    .header-note{font-size:13px;color:var(--muted);text-align:right}
 
-    main{display:flex;gap:18px;padding:14px}
-    .left{flex:1;max-width:760px}
-    .right{width:520px}
-
-    /* Preview cards */
-    .previewBox{background:var(--panel-bg);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(41,33,26,0.06)}
-    .pagePreview{width:210mm;height:297mm;border:1px solid #efe6db;margin:8px 0;overflow:hidden;background:white}
-
-    /* printable grid */
-    .printPage{width:210mm;height:297mm;padding:var(--page-margin-mm);background:white}
-    .cardsGrid{display:grid;gap:var(--card-gap-mm);height:100%}
-    .card{border:0.8pt dashed var(--card-border);border-radius:6px;padding:var(--card-padding-mm);display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;position:relative;background:linear-gradient(180deg,#ffffff,#fbfaf7)}
-    .card .meta{position:absolute;left:6px;top:6px;font-size:10px;color:rgba(63,51,38,0.6)}
-    .card .text{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:6px;word-wrap:break-word;color:#34281f}
-
-    /* hide UI when printing */
-    .no-print{display:block}
-    @media print{
-      body{background:white}
-      .no-print{display:none !important}
-      .pagePreview, header, main > .right{display:none}
-      .printWrapper{display:block}
-      @page { size: A4; margin: 0mm }
+    .layout{
+      max-width:1400px;margin:0 auto;padding:20px;
+      display:grid;grid-template-columns:minmax(0,1.05fr) 440px;gap:20px;align-items:start;
     }
 
-    /* helpful messages */
-    .msg{padding:10px;border-radius:8px;background:#fff7e6;color:#6b4e28;border:1px solid #ffe6b8}
-    .error{padding:10px;border-radius:8px;background:#fdebe9;color:#7a2a26;border:1px solid #f7cfcf}
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .panel-pad{padding:16px}
+    .panel-title{margin:0 0 10px;font-size:16px}
+    .subtle{color:var(--muted);font-size:13px}
 
-    /* responsive */
-    @media (max-width:1100px){ main{flex-direction:column} .right{width:100%} }
+    .stack{display:grid;gap:14px}
+    .controls{display:grid;gap:12px}
+    .label{font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;display:block}
+    textarea,select,input[type="number"],input[type="file"]{
+      width:100%;border:1px solid var(--border);border-radius:12px;background:#fff;
+      color:var(--text);padding:10px 12px;font:inherit;outline:none;
+    }
+    textarea{min-height:160px;resize:vertical;line-height:1.45}
+    textarea:focus,select:focus,input[type="number"]:focus,input[type="file"]:focus{border-color:#93c5fd;box-shadow:0 0 0 4px rgba(59,130,246,.12)}
 
-    /* OCR preview area */
-    .ocr-panel{display:flex;flex-direction:column;gap:10px;margin-top:8px;padding:10px;border:1px dashed #efe6db;border-radius:10px;background:linear-gradient(180deg,#fff,#fbf8f4)}
-    .ocr-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    #ocrPreview{max-width:100%;max-height:220px;border:1px solid #eee;border-radius:8px;background:white}
-    .progressBar{width:100%;height:8px;background:#efe7db;border-radius:6px;overflow:hidden}
-    .progressFill{height:100%;width:0%;background:var(--ui-accent);transition:width .2s ease}
-    .small-note{font-size:12px;color:#7a6a59;margin-top:6px}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .row > *{flex:0 0 auto}
+    .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+
+    .btn{
+      appearance:none;border:1px solid transparent;border-radius:12px;
+      padding:10px 14px;font:600 14px/1 var(--font);cursor:pointer;
+      transition:transform .08s ease,box-shadow .15s ease,background .15s ease,border-color .15s ease;
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
+      min-height:40px;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn-primary{background:var(--accent);color:#fff;box-shadow:0 8px 18px rgba(37,99,235,.18)}
+    .btn-primary:hover{background:var(--accent-2)}
+    .btn-ghost{background:#fff;border-color:var(--border);color:#111827}
+    .btn-ghost:hover{background:var(--panel-2)}
+    .btn-link{background:#fff;border-color:var(--border);color:var(--accent);text-decoration:none}
+    .btn-link:hover{background:#eff6ff}
+    .btn:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+
+    .check{
+      display:inline-flex;align-items:center;gap:8px;font-size:14px;color:#374151;
+      user-select:none;white-space:nowrap
+    }
+    .check input{width:16px;height:16px}
+
+    .message{padding:11px 12px;border-radius:12px;font-size:14px;line-height:1.45;border:1px solid transparent}
+    .message.info{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+    .message.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+    .message.error{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+    .message.success{background:#ecfdf5;border-color:#a7f3d0;color:#047857}
+
+    .preview-shell{display:grid;gap:14px}
+    .page-card{padding:16px}
+    .preview-grid{display:grid;gap:12px}
+    .page-preview{
+      width:100%;aspect-ratio:210/297;border:1px solid var(--border);border-radius:12px;
+      overflow:hidden;background:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)
+    }
+
+    .printWrapper{display:none}
+    .printPage{width:210mm;height:297mm;padding:var(--page-margin-mm);background:#fff}
+    .cardsGrid{display:grid;gap:var(--card-gap-mm);height:100%}
+    .card{
+      position:relative;display:flex;align-items:center;justify-content:center;text-align:center;
+      border:1px dashed #d1d5db;border-radius:8px;padding:var(--card-padding-mm);overflow:hidden;
+      background:linear-gradient(180deg,#fff,#fbfbfc);
+    }
+    .card .meta{position:absolute;left:6px;top:6px;font-size:10px;color:#9ca3af}
+    .card .text{width:100%;height:100%;display:flex;align-items:center;justify-content:center;word-break:break-word;color:#111827}
+
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+    .section-head h2{margin:0;font-size:16px}
+
+    .ocr-box{display:grid;gap:10px}
+    .progress{height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+    .progress-fill{width:0;height:100%;background:var(--accent);transition:width .2s ease}
+    #ocrPreview{width:100%;max-height:210px;object-fit:contain;border:1px solid var(--border);border-radius:12px;background:#fff}
+    .small{font-size:12px;color:var(--muted)}
+    .video-box video{width:100%;display:block;border-radius:12px;border:1px solid var(--border);background:#000}
+
+    .helper-list{margin:8px 0 0 18px;color:#374151;padding:0}
+    .helper-list li{margin:6px 0}
+
+    .left-col,.right-col{min-width:0}
+
+    @media (max-width:1100px){
+      .layout{grid-template-columns:1fr}
+      .header-note{text-align:left}
+    }
+
+    @media print{
+      body{background:#fff}
+      .app-header,.left-col,.right-col,.no-print{display:none !important}
+      .printWrapper{display:block}
+      @page{size:A4;margin:0}
+    }
   </style>
-
-  <!-- Tesseract.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
-  <header class="no-print">
-    <div>
-      <h1>Flashcard Maker</h1>
-      <div class="subtitle" style="margin-top:6px; font-size:14px; color:#5a4b3b;">
-        <strong>There is a Tutorial Below — Scroll Down</strong>
+  <header class="app-header no-print">
+    <div class="header-inner">
+      <div class="title-wrap">
+        <h1>Flashcard Maker</h1>
+        <p>Paste pairs in the format <strong>word: definition</strong> on separate lines, then generate the print preview. Definitions can be shuffled, OCR text can be added from an image, and the offline app file stays available to download.</p>
       </div>
-      <div class="subtitle">Paste pairs like <code>word: definition</code> (one per line). Definitions appear on separate pages in the generated PDF. Use Save as PDF to print. </div>
+      <div class="header-note">
+        Offline app file and tutorial video kept in place.
+      </div>
     </div>
-    <div class="small">Press download app file to use the flash card maker offline without internet!</div>
   </header>
 
-  <main>
-    <section class="left no-print">
-      <div class="controls previewBox">
-        <label for="inputArea"><strong>Vocabulary Input (one pair per line)</strong></label>
-        <textarea id="inputArea" placeholder="e.g. desert: a dry place\nriver: flowing water"></textarea>
-
-        <div class="row" style="margin-top:8px;flex-wrap:wrap">
-          <label>Cards per page:</label>
-          <select id="cardsPerPage">
-            <option value="4">4 (2×2)</option>
-            <option value="8" selected>8 (2×4)</option>
-            <option value="12">12 (3×4)</option>
-            <option value="16">16 (4×4)</option>
-          </select>
-
-          <label><input id="shuffleDefs" type="checkbox" /> Shuffle defs</label>
-          <label><input id="showCut" type="checkbox" checked /> Show cut guides</label>
-          <label><input id="addNumber" type="checkbox" /> Add index numbers</label>
+  <main class="layout">
+    <section class="left-col stack no-print">
+      <div class="panel panel-pad controls">
+        <div>
+          <label class="label" for="inputArea">Vocabulary input</label>
+          <textarea id="inputArea" placeholder="e.g.\ndesert: a dry place\nriver: flowing body of water"></textarea>
         </div>
 
-        <div class="row" style="margin-top:8px">
-          <button id="generateBtn">Generate preview</button>
-          <button id="printBtn" class="ghost" disabled>Save as PDF (Print)</button>
-          <button id="exampleBtn" class="ghost">Load example</button>
-          <button id="clearBtn" class="ghost">Clear</button>
-
-          <a id="downloadBtn" class="button-link ghost" href="offline-flash-card-maker.html" download="offline-flash-card-maker.html" style="margin-left:6px;" role="button" title="Download offline-flash-card-maker.html">Download app file</a>
-        </div>
-
-        <div id="status" style="margin-top:8px"></div>
-      </div>
-
-      <!-- OCR panel moved above the Tips/Video area -->
-      <div class="controls previewBox" style="margin-top:12px;">
-        <div class="ocr-panel" id="ocrPanel">
-          <strong>OCR — Extract text from an image</strong>
-          <div class="ocr-controls">
-            <input id="ocrFile" type="file" accept="image/*" />
-            <button id="ocrBtn">Run OCR</button>
-            <label style="display:flex;align-items:center;gap:6px"><input id="ocrAppend" type="checkbox" checked /> Append OCR to input</label>
-            <button id="ocrClear" class="ghost">Clear OCR</button>
+        <div class="field-grid">
+          <div>
+            <label class="label" for="cardsPerPage">Cards per page</label>
+            <select id="cardsPerPage">
+              <option value="4">4 (2×2)</option>
+              <option value="8" selected>8 (2×4)</option>
+              <option value="12">12 (3×4)</option>
+              <option value="16">16 (4×4)</option>
+            </select>
           </div>
-
-          <img id="ocrPreview" alt="image preview" />
-          <div class="progressBar" aria-hidden="true"><div id="ocrProgress" class="progressFill"></div></div>
-          <div id="ocrStatus" class="small"></div>
-          <div id="ocrNote" class="small-note"></div>
-
-          <!-- Hidden canvas used for OCR (works around some blob/url issues) -->
-          <canvas id="ocrCanvas" style="display:none;"></canvas>
+          <div>
+            <label class="label">Options</label>
+            <div class="row" style="padding-top:2px">
+              <label class="check"><input id="shuffleDefs" type="checkbox" /> Shuffle defs</label>
+              <label class="check"><input id="showCut" type="checkbox" checked /> Show cut guides</label>
+              <label class="check"><input id="addNumber" type="checkbox" /> Add numbers</label>
+            </div>
+          </div>
         </div>
+
+        <div class="row">
+          <button id="generateBtn" class="btn btn-primary">Generate preview</button>
+          <button id="printBtn" class="btn btn-ghost" disabled>Save as PDF</button>
+          <button id="exampleBtn" class="btn btn-ghost">Load example</button>
+          <button id="clearBtn" class="btn btn-ghost">Clear</button>
+          <a id="downloadBtn" class="btn btn-link" href="offline-flash-card-maker.html" download="offline-flash-card-maker.html">Download app file</a>
+        </div>
+
+        <div id="status"></div>
       </div>
 
-      <div style="margin-top:12px" class="previewBox no-print">
-        <strong>Tips</strong>
-        <ul style="margin:6px 0 0 18px;color:#5a4b3b">
-          <li>Use <strong>A4</strong> paper size and <strong>scale 100%</strong> when saving to PDF.</li>
-          <li>Turn off headers/footers in your print dialog for best results.</li>
-        </ul>
+      <div class="panel panel-pad ocr-box">
+        <div class="section-head">
+          <h2>OCR</h2>
+          <span class="small">Extract text from an image</span>
+        </div>
+        <input id="ocrFile" type="file" accept="image/*" />
+        <div class="row">
+          <button id="ocrBtn" class="btn btn-primary" type="button">Run OCR</button>
+          <label class="check"><input id="ocrAppend" type="checkbox" checked /> Append OCR to input</label>
+          <button id="ocrClear" class="btn btn-ghost" type="button">Clear OCR</button>
+        </div>
+        <img id="ocrPreview" alt="Image preview" />
+        <div class="progress" aria-hidden="true"><div id="ocrProgress" class="progress-fill"></div></div>
+        <div id="ocrStatus" class="small">Ready</div>
+        <canvas id="ocrCanvas" style="display:none"></canvas>
+      </div>
 
-        <strong>Video Instructions</strong>
-        <video controls width="650" style="margin-top:10px;border-radius:8px;overflow:hidden;">
+      <div class="panel panel-pad video-box">
+        <div class="section-head">
+          <h2>Video Instructions</h2>
+          <span class="small">Same video playback</span>
+        </div>
+        <video controls>
           <source src="flashcardmakervideo.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       </div>
 
+      <div class="panel panel-pad no-print">
+        <div class="section-head">
+          <h2>Tips</h2>
+          <span class="small">Best print settings</span>
+        </div>
+        <ul class="helper-list">
+          <li>Use <strong>A4</strong> and <strong>100%</strong> scale.</li>
+          <li>Turn off headers and footers in the print dialog.</li>
+          <li>Check the preview before saving the PDF.</li>
+        </ul>
+      </div>
     </section>
 
-    <aside class="right no-print">
-      <div class="previewBox">
-        <h3 style="margin:6px 0;color:#3f3326">Preview — First Terms Page</h3>
-        <div id="termsPreview" class="pagePreview"></div>
+    <aside class="right-col no-print">
+      <div class="panel panel-pad preview-shell">
+        <div class="section-head">
+          <h2>Preview</h2>
+          <span class="small">First page only</span>
+        </div>
 
-        <h3 style="margin:6px 0;color:#3f3326">Preview — First Definitions Page</h3>
-        <div id="defsPreview" class="pagePreview"></div>
+        <div class="preview-grid">
+          <div>
+            <div class="subtle" style="margin-bottom:8px;font-weight:600">Terms page</div>
+            <div id="termsPreview" class="page-preview"></div>
+          </div>
+          <div>
+            <div class="subtle" style="margin-bottom:8px;font-weight:600">Definitions page</div>
+            <div id="defsPreview" class="page-preview"></div>
+          </div>
+        </div>
       </div>
     </aside>
   </main>
 
-  <div id="printWrapper" class="printWrapper" style="display:none"></div>
+  <div id="printWrapper" class="printWrapper"></div>
 
   <script>
-    // ---------- Robust OCR integration (camera removed, messages removed) ----------
-    // Goals:
-    // - Detect Tesseract API shape and pick a safe path
-    // - Provide progress/status UI
-    // - Prevent parallel runs
-    // - Work with file uploads, object URLs or canvas
-    // - ocrNote left blank
-
     const ocrFileInput = document.getElementById('ocrFile');
     const ocrBtn = document.getElementById('ocrBtn');
     const ocrPreview = document.getElementById('ocrPreview');
@@ -191,21 +275,28 @@
     const ocrAppend = document.getElementById('ocrAppend');
     const ocrClear = document.getElementById('ocrClear');
     const ocrCanvas = document.getElementById('ocrCanvas');
-    const ocrNote = document.getElementById('ocrNote');
 
     let ocrObjectUrl = null;
     let worker = null;
     let workerInitialized = false;
     let busy = false;
 
+    function clear(el){ while(el.firstChild) el.removeChild(el.firstChild); }
+
+    function setStatus(type, text){
+      const box = document.getElementById('status');
+      box.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = `message ${type}`;
+      div.textContent = text;
+      box.appendChild(div);
+    }
+
     function setOcrIdle(message='Ready') {
       ocrStatus.textContent = message;
       ocrProgress.style.width = '0%';
       ocrBtn.disabled = false;
     }
-
-    // ocrNote intentionally left blank per request
-    ocrNote.textContent = '';
 
     function makeLogger() {
       return (m) => {
@@ -226,7 +317,7 @@
       setOcrIdle('Image loaded — ready to OCR');
     });
 
-    async function drawToCanvasFromImageSource(src) {
+    function drawToCanvasFromImageSource(src) {
       return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -243,7 +334,7 @@
           ctx.drawImage(img, 0, 0, w, h);
           resolve(c);
         };
-        img.onerror = (e) => reject(new Error('Failed to load image for OCR'));
+        img.onerror = () => reject(new Error('Failed to load image for OCR'));
         img.src = src;
       });
     }
@@ -277,45 +368,6 @@
       throw new Error('No usable Tesseract API found on page. Ensure the CDN loaded and network is available.');
     }
 
-    ocrBtn.addEventListener('click', async () => {
-      if (busy) return;
-      busy = true;
-      ocrBtn.disabled = true;
-      ocrStatus.textContent = 'Preparing OCR...';
-      ocrProgress.style.width = '0%';
-
-      try {
-        if (ocrFileInput.files && ocrFileInput.files[0]) {
-          const src = ocrObjectUrl || URL.createObjectURL(ocrFileInput.files[0]);
-          try {
-            const canvas = await drawToCanvasFromImageSource(src);
-            if (!ocrObjectUrl) { URL.revokeObjectURL(src); }
-            const text = await performOcrFromCanvas(canvas);
-            handleOcrResult(text);
-            return;
-          } catch (err) {
-            console.warn('drawToCanvas failed, falling back to direct recognize with src.', err);
-          }
-        }
-
-        if (ocrPreview && ocrPreview.src) {
-          const canvas = await drawToCanvasFromImageSource(ocrPreview.src);
-          const text = await performOcrFromCanvas(canvas);
-          handleOcrResult(text);
-          return;
-        }
-
-        throw new Error('No image available. Choose a file first.');
-      } catch (err) {
-        console.error(err);
-        ocrStatus.textContent = 'OCR failed: ' + (err && err.message ? err.message : String(err));
-        ocrProgress.style.width = '0%';
-      } finally {
-        busy = false;
-        ocrBtn.disabled = false;
-      }
-    });
-
     function handleOcrResult(text) {
       const cleaned = (text || '').replace(/\r/g,'').replace(/\n{3,}/g,'\n\n').trim();
       const inputArea = document.getElementById('inputArea');
@@ -328,6 +380,39 @@
       ocrProgress.style.width = '100%';
     }
 
+    ocrBtn.addEventListener('click', async () => {
+      if (busy) return;
+      busy = true;
+      ocrBtn.disabled = true;
+      ocrStatus.textContent = 'Preparing OCR...';
+      ocrProgress.style.width = '0%';
+
+      try {
+        if (ocrFileInput.files && ocrFileInput.files[0]) {
+          const src = ocrObjectUrl || URL.createObjectURL(ocrFileInput.files[0]);
+          const canvas = await drawToCanvasFromImageSource(src);
+          if (!ocrObjectUrl) { URL.revokeObjectURL(src); }
+          const text = await performOcrFromCanvas(canvas);
+          handleOcrResult(text);
+          return;
+        }
+        if (ocrPreview && ocrPreview.src) {
+          const canvas = await drawToCanvasFromImageSource(ocrPreview.src);
+          const text = await performOcrFromCanvas(canvas);
+          handleOcrResult(text);
+          return;
+        }
+        throw new Error('No image available. Choose a file first.');
+      } catch (err) {
+        console.error(err);
+        ocrStatus.textContent = 'OCR failed: ' + (err && err.message ? err.message : String(err));
+        ocrProgress.style.width = '0%';
+      } finally {
+        busy = false;
+        ocrBtn.disabled = false;
+      }
+    });
+
     ocrClear.addEventListener('click', () => {
       if (ocrObjectUrl) { URL.revokeObjectURL(ocrObjectUrl); ocrObjectUrl = null; }
       ocrFileInput.value = '';
@@ -337,14 +422,14 @@
 
     window.addEventListener('beforeunload', async () => {
       try {
-        if (worker && typeof worker.terminate === 'function') { await worker.terminate(); worker = null; workerInitialized = false; }
+        if (worker && typeof worker.terminate === 'function') {
+          await worker.terminate();
+          worker = null;
+          workerInitialized = false;
+        }
       } catch (e) {}
     });
 
-    // ---------- End OCR integration ----------
-
-
-    // Utility functions and the rest of your flashcard app (unchanged, lightly refactored)
     function parsePairs(text){
       const lines = text.split(/\r?\n/);
       const pairs = [];
@@ -365,8 +450,6 @@
       return {pairs,errors};
     }
 
-    function clear(el){ while(el.firstChild) el.removeChild(el.firstChild); }
-
     function createPrintPage(cols, rows, showCut){
       const page = document.createElement('div');
       page.className = 'printPage';
@@ -374,50 +457,71 @@
       grid.className = 'cardsGrid';
       grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
       grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-      page.appendChild(grid);
       if(!showCut) grid.classList.add('no-cut');
+      page.appendChild(grid);
       return {page,grid};
     }
 
     function makeCard(text, index, showIndex){
-      const c = document.createElement('div'); c.className = 'card';
-      const meta = document.createElement('div'); meta.className='meta';
+      const c = document.createElement('div');
+      c.className = 'card';
+      const meta = document.createElement('div');
+      meta.className='meta';
       if(showIndex) meta.textContent = index+1;
       c.appendChild(meta);
-      const t = document.createElement('div'); t.className='text'; t.textContent = text;
+      const t = document.createElement('div');
+      t.className='text';
+      t.textContent = text;
       c.appendChild(t);
       return c;
     }
 
     function autoFitText(node){
       const el = node;
-      let fs = 28; el.style.fontSize = fs + 'px'; el.style.lineHeight='1.05';
+      let fs = 28;
+      el.style.fontSize = fs + 'px';
+      el.style.lineHeight = '1.08';
       const parent = el.parentElement;
       let iter = 0;
       while((el.scrollHeight > parent.clientHeight || el.scrollWidth > parent.clientWidth) && fs > 8 && iter < 200){
-        fs -= 1; el.style.fontSize = fs + 'px'; iter++;
+        fs -= 1;
+        el.style.fontSize = fs + 'px';
+        iter++;
       }
       if(fs < 9) el.style.fontSize = '9px';
     }
 
     function autoFitAll(container){
-      const texts = container.querySelectorAll('.text');
-      texts.forEach(t => autoFitText(t));
+      container.querySelectorAll('.text').forEach(t => autoFitText(t));
     }
 
-    function shuffleArray(a){ const arr = a.slice(); for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr }
+    function shuffleArray(a){
+      const arr = a.slice();
+      for(let i=arr.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
 
     function buildPrintDocument(pairs, opts){
-      const perPage = opts.cardsPerPage; let cols=2, rows=4;
-      if(perPage===4){cols=2;rows=2} else if(perPage===8){cols=2;rows=4} else if(perPage===12){cols=3;rows=4} else if(perPage===16){cols=4;rows=4}
+      const perPage = opts.cardsPerPage;
+      let cols=2, rows=4;
+      if(perPage===4){cols=2;rows=2}
+      else if(perPage===8){cols=2;rows=4}
+      else if(perPage===12){cols=3;rows=4}
+      else if(perPage===16){cols=4;rows=4}
+
       const total = pairs.length;
       const pages = Math.max(1, Math.ceil(total/perPage));
       const wrapper = document.createElement('div');
       wrapper.style.display = 'block';
+
       const defs = pairs.map(p=>p.def || '');
       const defsOrdered = opts.shuffleDefs ? shuffleArray(defs) : defs.slice();
       const paddedPairs = pairs.slice(); while(paddedPairs.length < pages*perPage) paddedPairs.push({term:'',def:''});
       const paddedDefs = defsOrdered.slice(); while(paddedDefs.length < pages*perPage) paddedDefs.push('');
+
       for(let pg=0; pg<pages; pg++){
         const {page:termsPage, grid:termsGrid} = createPrintPage(cols, rows, opts.showCut);
         for(let i=0;i<perPage;i++){
@@ -426,89 +530,114 @@
           termsGrid.appendChild(makeCard(pair.term, idx, opts.addNumber));
         }
         wrapper.appendChild(termsPage);
+
         const {page:defsPage, grid:defsGrid} = createPrintPage(cols, rows, opts.showCut);
         for(let i=0;i<perPage;i++){
           const idx = pg*perPage + i;
-          const defText = paddedDefs[idx] || '';
-          defsGrid.appendChild(makeCard(defText, idx, opts.addNumber));
+          defsGrid.appendChild(makeCard(paddedDefs[idx] || '', idx, opts.addNumber));
         }
         wrapper.appendChild(defsPage);
       }
+
       setTimeout(()=>{
         const pageMargin = 10;
         const pageW = 210, pageH = 297;
         const usableW = pageW - pageMargin*2;
         const usableH = pageH - pageMargin*2;
         const gap = 4;
-        const allPages = wrapper.querySelectorAll('.printPage');
-        allPages.forEach(pgEl => {
+
+        wrapper.querySelectorAll('.printPage').forEach(pgEl => {
           const grid = pgEl.querySelector('.cardsGrid');
-          const colsCount = (grid.style.gridTemplateColumns.match(/repeat\((\d+)/) || [])[1] ? parseInt(grid.style.gridTemplateColumns.match(/repeat\((\d+)/)[1]) : cols;
-          const rowsCount = (grid.style.gridTemplateRows.match(/repeat\((\d+)/) || [])[1] ? parseInt(grid.style.gridTemplateRows.match(/repeat\((\d+)/)[1]) : rows;
+          const colsCount = parseInt(grid.style.gridTemplateColumns.match(/repeat\((\d+)/)?.[1] || cols, 10);
+          const rowsCount = parseInt(grid.style.gridTemplateRows.match(/repeat\((\d+)/)?.[1] || rows, 10);
           const cardW = (usableW - gap*(colsCount-1))/colsCount;
           const cardH = (usableH - gap*(rowsCount-1))/rowsCount;
-          const cards = pgEl.querySelectorAll('.card');
-          cards.forEach(c=>{
+          pgEl.querySelectorAll('.card').forEach(c=>{
             c.style.width = `${cardW}mm`;
             c.style.height = `${cardH}mm`;
           });
         });
         autoFitAll(wrapper);
-      }, 60);
+      }, 50);
+
       return wrapper;
     }
 
     function renderPreview(pairs, opts){
-      const perPage = opts.cardsPerPage; let cols=2, rows=4;
-      if(perPage===4){cols=2;rows=2} else if(perPage===8){cols=2;rows=4} else if(perPage===12){cols=3;rows=4} else if(perPage===16){cols=4;rows=4}
-      const termsPreview = document.getElementById('termsPreview'); clear(termsPreview);
-      const defsPreview = document.getElementById('defsPreview'); clear(defsPreview);
+      const perPage = opts.cardsPerPage;
+      let cols=2, rows=4;
+      if(perPage===4){cols=2;rows=2}
+      else if(perPage===8){cols=2;rows=4}
+      else if(perPage===12){cols=3;rows=4}
+      else if(perPage===16){cols=4;rows=4}
+
+      const termsPreview = document.getElementById('termsPreview');
+      const defsPreview = document.getElementById('defsPreview');
+      clear(termsPreview);
+      clear(defsPreview);
+
       const {page:tp, grid:tg} = createPrintPage(cols, rows, opts.showCut);
-      for(let i=0;i<perPage;i++){
-        const pair = pairs[i] || {term:'',def:''};
-        tg.appendChild(makeCard(pair.term, i, opts.addNumber));
-      }
+      for(let i=0;i<perPage;i++) tg.appendChild(makeCard((pairs[i] || {term:''}).term || '', i, opts.addNumber));
+
       const defs = pairs.map(p=>p.def||'');
       const defsOrdered = opts.shuffleDefs ? shuffleArray(defs) : defs.slice();
       const {page:dp, grid:dg} = createPrintPage(cols, rows, opts.showCut);
-      for(let i=0;i<perPage;i++){
-        dg.appendChild(makeCard(defsOrdered[i]||'', i, opts.addNumber));
-      }
+      for(let i=0;i<perPage;i++) dg.appendChild(makeCard(defsOrdered[i]||'', i, opts.addNumber));
+
       termsPreview.appendChild(tp);
       defsPreview.appendChild(dp);
-      setTimeout(()=>{ autoFitAll(tp); autoFitAll(dp); }, 60);
+      setTimeout(()=>{ autoFitAll(tp); autoFitAll(dp); }, 50);
     }
 
     function generate(){
       try{
         const input = document.getElementById('inputArea').value;
         const parsed = parsePairs(input);
-        const status = document.getElementById('status'); clear(status);
+        const status = document.getElementById('status');
+        clear(status);
+
+        if(parsed.pairs.length === 0){
+          const err = document.createElement('div');
+          err.className='message error';
+          err.textContent = 'No valid pairs found. Paste at least one line in the form word: definition.';
+          status.appendChild(err);
+          document.getElementById('printBtn').disabled = true;
+          return;
+        }
+
         if(parsed.errors && parsed.errors.length>0){
-          const msg = document.createElement('div'); msg.className='msg';
-          msg.innerHTML = `Warning: ${parsed.errors.length} line(s) had no separator and were added as terms with empty definitions (lines: ${parsed.errors.map(e=>e.line).join(', ')}).`;
+          const msg = document.createElement('div');
+          msg.className='message warn';
+          msg.textContent = `${parsed.errors.length} line(s) did not include a separator, so they were added as terms with blank definitions.`;
           status.appendChild(msg);
         }
-        if(parsed.pairs.length === 0){
-          const err = document.createElement('div'); err.className='error'; err.textContent = 'No valid pairs found. Please paste at least one "term: definition" line.'; status.appendChild(err); return;
-        }
+
         const opts = {
           cardsPerPage: parseInt(document.getElementById('cardsPerPage').value,10),
           shuffleDefs: document.getElementById('shuffleDefs').checked,
           showCut: document.getElementById('showCut').checked,
           addNumber: document.getElementById('addNumber').checked
         };
+
         const built = buildPrintDocument(parsed.pairs, opts);
-        const container = document.getElementById('printWrapper'); clear(container);
+        const container = document.getElementById('printWrapper');
+        clear(container);
         container.appendChild(built);
         container.style.display = 'block';
+
         renderPreview(parsed.pairs, opts);
         document.getElementById('printBtn').disabled = false;
-        const ok = document.createElement('div'); ok.className='msg'; ok.textContent = 'Preview generated — check the on-screen previews. Click "Save as PDF (Print)" to create the PDF.'; 
+
+        const ok = document.createElement('div');
+        ok.className='message success';
+        ok.textContent = 'Preview generated. Use Save as PDF to export your flashcards.';
         status.appendChild(ok);
       } catch(err){
-        const status = document.getElementById('status'); clear(status);
-        const e = document.createElement('div'); e.className='error'; e.textContent = 'Error generating preview: ' + (err && err.message ? err.message : String(err));
+        const status = document.getElementById('status');
+        clear(status);
+        const e = document.createElement('div');
+        e.className='message error';
+        e.textContent = 'Error generating preview: ' + (err && err.message ? err.message : String(err));
         status.appendChild(e);
         console.error(err);
       }
@@ -519,14 +648,20 @@
       document.getElementById('inputArea').value = 'desert: a dry place\nriver: flowing body of water\nlake: a large body of water surrounded by land\nforest: a large area dominated by trees\nmountain: a high natural elevation\nisland: land surrounded by water\nvalley: low area between hills\ndune: a hill of sand formed by the wind';
       generate();
     });
-    document.getElementById('clearBtn').addEventListener('click', ()=>{ document.getElementById('inputArea').value=''; generate(); });
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      document.getElementById('inputArea').value='';
+      clear(document.getElementById('status'));
+      document.getElementById('printBtn').disabled = true;
+      clear(document.getElementById('termsPreview'));
+      clear(document.getElementById('defsPreview'));
+      document.getElementById('printWrapper').innerHTML = '';
+    });
     document.getElementById('printBtn').addEventListener('click', ()=>{
       const container = document.getElementById('printWrapper');
       if(!container.firstChild){ alert('No generated pages — click Generate first.'); return; }
       window.print();
     });
 
-    // Auto load example on first open
     document.getElementById('exampleBtn').click();
   </script>
 </body>
